@@ -1,0 +1,12 @@
+[submodule "grblHAL_Due/src/grbl"]
+	path = grblHAL_Due/src/grbl
+	url = https://github.com/grblHAL/core
+[submodule "grblHAL_Due/src/eeprom"]
+	path = grblHAL_Due/src/eeprom
+	url = https://github.com/grblHAL/Plugin_EEPROM
+[submodule "grblHAL_Due/src/keypad"]
+	path = grblHAL_Due/src/keypad
+	url = https://github.com/grblHAL/Plugin_I2C_keypad
+[submodule "grblHAL_Due/src/spindle"]
+	path = grblHAL_Due/src/spindle
+	url = https://github.com/grblHAL/Plugins_spindle
