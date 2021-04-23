@@ -1438,7 +1438,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210214";
+	hal.driver_version = "210423";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1490,6 +1490,7 @@ bool driver_init (void)
     hal.stream.cancel_read_buffer = usb_serialRxCancel;
     hal.stream.write = usb_serialWriteS;
     hal.stream.write_all = usb_serialWriteS;
+    hal.stream.write_char = usb_serialPutC;
     hal.stream.suspend_read = usb_serialSuspendInput;
 #else
     serialInit();
@@ -1499,6 +1500,7 @@ bool driver_init (void)
     hal.stream.cancel_read_buffer = serialRxCancel;
     hal.stream.write = serialWriteS;
     hal.stream.write_all = serialWriteS;
+    hal.stream.write_char = serialPutC;
     hal.stream.suspend_read = serialSuspendInput;
 #endif
 
@@ -1525,7 +1527,7 @@ bool driver_init (void)
     hal.get_elapsed_ticks = millis;
 
 #if USB_SERIAL_CDC
-    hal.execute_realtime = execute_realtime;
+    grbl.on_execute_realtime = execute_realtime;
 #endif
 
 #ifdef DEBUGOUT
