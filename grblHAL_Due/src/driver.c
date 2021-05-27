@@ -1413,7 +1413,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210503";
+	hal.driver_version = "210527";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif

@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2020 Terje Io
+  Copyright (c) 2019-2021 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "driver.h"
 #include "grbl/hal.h"
 #include "grbl/stream.h"
 
@@ -38,15 +39,27 @@
 #define BUFCOUNT(head, tail, size) ((head >= tail) ? (head - tail) : (size - tail + head))
 
 // Set SERIAL_DEVICE to -1 for communication over the programming port on Arduino Due
+#ifndef SERIAL_DEVICE
 #define SERIAL_DEVICE -1
-
-#if MODBUS_ENABLE
-#define SERIAL2_DEVICE 1
 #endif
 
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE > 2
+#error Illegal SERIAL_DEVICE selected
+#endif
+
+#if MODBUS_ENABLE
+#ifndef SERIAL2_DEVICE
+#define SERIAL2_DEVICE 1
+#endif
+#if SERIAL2_DEVICE < 0 || SERIAL2_DEVICE > 2
+#error Illegal SERIAL2_DEVICE selected for ModBus
+#endif
+#endif
+
+#if SERIAL_DEVICE < 0
 #define SERIAL_PERIPH UART
 #define SERIAL_PORT PIOA
+#define SERIAL_PORT_ID ID_PIOA
 #define SERIAL_ID ID_UART
 #define SERIAL_IRQ UART_IRQn
 #define SERIAL_RX PIO_PA8A_URXD
@@ -56,6 +69,7 @@
 #if SERIAL_DEVICE == 0
 #define SERIAL_PERIPH USART0
 #define SERIAL_PORT PIOA
+#define SERIAL_PORT_ID ID_PIOA
 #define SERIAL_ID ID_USART0
 #define SERIAL_IRQ USART0_IRQn
 #define SERIAL_RX PIO_PA10A_RXD0
@@ -65,6 +79,7 @@
 #if SERIAL_DEVICE == 1
 #define SERIAL_PERIPH USART1
 #define SERIAL_PORT PIOA
+#define SERIAL_PORT_ID ID_PIOA
 #define SERIAL_ID ID_USART1
 #define SERIAL_IRQ USART1_IRQn
 #define SERIAL_RX PIO_PA12A_RXD1
@@ -73,7 +88,8 @@
 
 #if SERIAL_DEVICE == 2
 #define SERIAL_PERIPH USART2
-#define SERIAL_PORT PIOA
+#define SERIAL_PORT PIOB
+#define SERIAL_PORT_ID ID_PIOB
 #define SERIAL_ID ID_USART2
 #define SERIAL_IRQ USART2_IRQn
 #define SERIAL_RX PIO_PB21A_RXD2
@@ -85,6 +101,7 @@
 #if SERIAL2_DEVICE == 0
 #define SERIAL2_PERIPH USART0
 #define SERIAL2_PORT PIOA
+#define SERIAL2_PORT_ID ID_PIOA
 #define SERIAL2_ID ID_USART0
 #define SERIAL2_IRQ USART0_IRQn
 #define SERIAL2_RX PIO_PA10A_RXD0
@@ -94,6 +111,7 @@
 #if SERIAL2_DEVICE == 1
 #define SERIAL2_PERIPH USART1
 #define SERIAL2_PORT PIOA
+#define SERIAL2_PORT_ID ID_PIOA
 #define SERIAL2_ID ID_USART1
 #define SERIAL2_IRQ USART1_IRQn
 #define SERIAL2_RX PIO_PA12A_RXD1
@@ -102,7 +120,8 @@
 
 #if SERIAL2_DEVICE == 2
 #define SERIAL2_PERIPH USART2
-#define SERIAL2_PORT PIOA
+#define SERIAL2_PORT PIOB
+#define SERIAL2_PORT_ID ID_PIOB
 #define SERIAL2_ID ID_USART2
 #define SERIAL2_IRQ USART2_IRQn
 #define SERIAL2_RX PIO_PB21A_RXD2

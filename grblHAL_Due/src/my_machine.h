@@ -38,5 +38,17 @@
 //#define KEYPAD_ENABLE      1 // I2C keypad for jogging etc., requires keypad plugin.
 //#define EEPROM_ENABLE      1 // I2C EEPROM support. Set to 1 for 24LC16(2K), 2 for larger sizes. Requires eeprom plugin.
 //#define EEPROM_IS_FRAM     1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+#ifndef USB_SERIAL_CDC
+#define SERIAL_DEVICE      -1 // Select serial device for output if not using native USB, default is -1, max value is 2
+#endif
+#ifdef SPINDLE_HUANYANG
+#define SERIAL2_DEVICE       1 // Select serial device for ModBus output, default is 1, allowed values are 0, 1 and 2
+#endif
+
+// Serial devices
+// -1 (Default)  0 (PA8)  = RX,   1 (PA9)  = TX (Same as USB programming port)
+// 0            19 (PA10) = RX,  18 (PA11) = TX
+// 1            17 (PA12) = RX,  18 (PA13) = TX
+// 2            52 (PB21) = RX, A11 (PB21) = TX
 
 /**/

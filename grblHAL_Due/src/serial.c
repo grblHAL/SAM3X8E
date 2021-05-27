@@ -21,7 +21,6 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "driver.h"
 #include "serial.h"
 
 static stream_tx_buffer_t txbuffer = {0};
@@ -32,13 +31,9 @@ static void SERIAL_IRQHandler (void);
 void serialInit (void)
 {
     pmc_enable_periph_clk(SERIAL_ID);
-    pmc_enable_periph_clk(ID_PIOA);
-/*
-    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL_PORT->PIO_ABSR = SERIAL_RX|SERIAL_TX;
-*/
-#if SERIAL_DEVICE == -1
+    pmc_enable_periph_clk(SERIAL_PORT_ID);
+
+#if SERIAL_DEVICE < 0
     SERIAL_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
     SERIAL_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
 
@@ -48,6 +43,11 @@ void serialInit (void)
 
     SERIAL_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
 #else
+    SERIAL_PORT->PIO_WPMR = 0x50494F;
+    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
+    SERIAL_PORT->PIO_OER  = SERIAL_TX;
+    SERIAL_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
+
     SERIAL_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
     SERIAL_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
 
@@ -123,11 +123,11 @@ static inline bool serialPutCNonBlocking (const char c)
 {
     bool ok = false;
 
-#if SERIAL_DEVICE == -1
-    if((ok = (SERIAL_PERIPH->UART_IMR & US_IMR_TXRDY) == 0 && SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY))
+#if SERIAL_DEVICE < 0
+    if((ok = (SERIAL_PERIPH->UART_IMR & US_IMR_TXRDY) == 0 && (SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY)))
         SERIAL_PERIPH->UART_THR = c;
 #else
-    if((ok = (SERIAL_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY))
+    if((ok = (SERIAL_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && (SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY)))
         SERIAL_PERIPH->US_THR = c;
 #endif
     return ok;
@@ -152,7 +152,7 @@ bool serialPutC (const char c) {
 
         txbuffer.data[txbuffer.head] = c;                               // Add data to buffer
         txbuffer.head = next_head;                                      // and update head pointer
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE < 0
         SERIAL_PERIPH->UART_IER = UART_IER_TXRDY;                       // Enable TX interrupts
 #else
         SERIAL_PERIPH->US_IER = US_IER_TXRDY;                           // Enable TX interrupts
@@ -227,7 +227,7 @@ static void SERIAL_IRQHandler (void)
         SERIAL_PERIPH->USART.INTFLAG.reg = ifg;
     }
 */
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE < 0
     if(SERIAL_PERIPH->UART_SR & UART_SR_RXRDY) {
         char data = (char)SERIAL_PERIPH->UART_RHR;
 #else
@@ -249,14 +249,14 @@ static void SERIAL_IRQHandler (void)
             }
         }           
     }
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE < 0
     if(SERIAL_PERIPH->UART_SR & UART_SR_TXRDY) {
 #else
     if(SERIAL_PERIPH->US_CSR & US_CSR_TXRDY) {
 #endif
         bptr = txbuffer.tail;                                           // Temp tail position (to avoid volatile overhead)
         if(txbuffer.tail != txbuffer.head) {
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE < 0
             SERIAL_PERIPH->UART_THR = (uint32_t)txbuffer.data[bptr++];  // Send a byte from the buffer
 #else
             SERIAL_PERIPH->US_THR = (uint32_t)txbuffer.data[bptr++];    // Send a byte from the buffer
@@ -265,7 +265,7 @@ static void SERIAL_IRQHandler (void)
             txbuffer.tail = bptr;                                       // tail position
         }
         if (bptr == txbuffer.head)                                      // Turn off TX interrupt
-#if SERIAL_DEVICE == -1
+#if SERIAL_DEVICE < 0
             SERIAL_PERIPH->UART_IDR = UART_IER_TXRDY;                   // when buffer empty
 #else
             SERIAL_PERIPH->US_IDR = US_IER_TXRDY;                       // when buffer empty
@@ -275,10 +275,6 @@ static void SERIAL_IRQHandler (void)
 
 #ifdef SERIAL2_DEVICE
 
-#if SERIAL2_DEVICE == -1
-#error "Not supported!"
-#endif
-
 static stream_tx_buffer_t tx2buffer = {0};
 static stream_rx_buffer_t rx2buffer = {0};
 
@@ -287,12 +283,12 @@ static void SERIAL2_IRQHandler (void);
 void serial2Init (uint32_t baud_rate)
 {
     pmc_enable_periph_clk(SERIAL2_ID);
-    pmc_enable_periph_clk(ID_PIOA);
-/*
-    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL_PORT->PIO_ABSR = SERIAL_RX|SERIAL_TX;
-*/
+    pmc_enable_periph_clk(SERIAL2_PORT_ID);
+
+    SERIAL2_PORT->PIO_WPMR = 0x50494F;
+    SERIAL2_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
+    SERIAL2_PORT->PIO_OER  = SERIAL_TX;
+    SERIAL2_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
 
     SERIAL2_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
     SERIAL2_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
@@ -373,7 +369,7 @@ static inline bool serial2PutCNonBlocking (const char c)
 {
     bool ok = false;
 
-    if((ok = (SERIAL2_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY))
+    if((ok = (SERIAL2_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && (SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY)))
         SERIAL2_PERIPH->US_THR = c;
 
     return ok;
