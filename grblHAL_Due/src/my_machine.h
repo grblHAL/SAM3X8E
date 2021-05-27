@@ -48,7 +48,7 @@
 // Serial devices
 // -1 (Default)  0 (PA8)  = RX,   1 (PA9)  = TX (Same as USB programming port)
 // 0            19 (PA10) = RX,  18 (PA11) = TX
-// 1            17 (PA12) = RX,  18 (PA13) = TX
+// 1            17 (PA12) = RX,  16 (PA13) = TX
 // 2            52 (PB21) = RX, A11 (PB21) = TX
 
 /**/
