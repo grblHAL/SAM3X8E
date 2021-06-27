@@ -33,6 +33,8 @@
 #include "my_machine.h"
 #endif
 
+#include "grbl/driver_opts.h"
+
 /******************************************************************************
 * Definitions for bit band access and dynamic IRQ registration                *
 ******************************************************************************/
@@ -49,41 +51,13 @@
 
 #define BITBAND_PERI(a,b) (*((__IO uint32_t *)((BITBAND_PERI_BASE + ((((uint32_t)(uint32_t *)&a)-BITBAND_PERI_REF)<<5) + (b<<2)))))
 
+#define DIGITAL_IN(port, pin) BITBAND_PERI(port->PIO_PDSR, pin)
+#define DIGITAL_OUT(port, pin, on) { BITBAND_PERI(port->PIO_ODSR, pin) = on; }
+
 void IRQRegister(int32_t IRQnum, void (*IRQhandler)(void));
 void IRQUnRegister(int32_t IRQnum);
 
 /*****************************************************************************/
-
-#ifndef USB_SERIAL_CDC
-#define USB_SERIAL_CDC      0 // for UART comms
-#endif
-#ifndef USB_SERIAL_WAIT
-#define USB_SERIAL_WAIT     0
-#endif
-#ifndef SPINDLE_HUANYANG
-#define SPINDLE_HUANYANG    0
-#endif
-#ifndef SDCARD_ENABLE
-#define SDCARD_ENABLE       0
-#endif
-#ifndef KEYPAD_ENABLE
-#define KEYPAD_ENABLE       0
-#endif
-#ifndef EEPROM_ENABLE
-#define EEPROM_ENABLE       0
-#endif
-#ifndef EEPROM_IS_FRAM
-#define EEPROM_IS_FRAM      0
-#endif
-#ifndef TRINAMIC_ENABLE
-#define TRINAMIC_ENABLE     0
-#endif
-#ifndef TRINAMIC_I2C
-#define TRINAMIC_I2C        0
-#endif
-#ifndef TRINAMIC_DEV
-#define TRINAMIC_DEV        0
-#endif
 
 // timer definitions
 
@@ -122,6 +96,10 @@ void IRQUnRegister(int32_t IRQnum);
 
 // End configuration
 
+#if BLUETOOTH_ENABLE == 2
+#define SERIAL2_DEVICE 1
+#endif
+
 #if TRINAMIC_ENABLE == 2130
 #include "tmc2130/trinamic.h"
 #endif
@@ -154,14 +132,39 @@ void IRQUnRegister(int32_t IRQnum);
 #error Keypad plugin is not available for this driver
 #endif
 
-#if N_AXIS > 3 && !defined(A_STEP_PIN)
-#error A motor must be defined for 4 or more axes
-#endif
-#if N_AXIS > 4 && !defined(B_STEP_PIN)
-#error B motor must be defined for 5 or more axes
-#endif
-#if N_AXIS > 5 && !defined(C_STEP_PIN)
-#error C motor must be defined for 6 axes
+typedef struct {
+    Pio *port;
+    uint_fast8_t pin;
+    uint32_t bit;
+    pin_function_t id;
+    pin_group_t group;
+    bool debounce;
+    pin_irq_mode_t irq_mode;
+    pin_mode_t cap;
+    ioport_interrupt_callback_ptr interrupt_callback;
+} input_signal_t;
+
+typedef struct {
+    Pio *port;
+    uint_fast8_t pin;
+    uint32_t bit;
+    pin_function_t id;
+    pin_group_t group;
+} output_signal_t;
+
+typedef struct {
+    uint8_t n_pins;
+    union {
+        input_signal_t *inputs;
+        output_signal_t *outputs;
+    } pins;
+} pin_group_pins_t;
+
+void PIO_EnableInterrupt (const input_signal_t *input, pin_irq_mode_t irq_mode);
+
+#ifdef HAS_IOPORTS
+void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
+void ioports_event (input_signal_t *input);
 #endif
 
 #endif

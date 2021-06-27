@@ -25,6 +25,8 @@
 
 #include "grbl/limits.h"
 #include "grbl/crossbar.h"
+#include "grbl/motor_pins.h"
+#include "grbl/protocol.h"
 
 #if USB_SERIAL_CDC
 #include "usb_serial.h"
@@ -43,19 +45,11 @@
 #include "keypad/keypad.h"
 #endif
 
+#if BLUETOOTH_ENABLE
+#include "bluetooth/bluetooth.h"
+#endif
+
 #define DEBOUNCE_QUEUE 8 // Must be a power of 2
-
-#if X_AUTO_SQUARE || Y_AUTO_SQUARE || Z_AUTO_SQUARE
-#define SQUARING_ENABLED
-#endif
-
-#if defined(X_LIMIT_PIN_MAX) || defined(Y_LIMIT_PIN_MAX) || defined(Z_LIMIT_PIN_MAX) || defined(A_LIMIT_PIN_MAX) || defined(B_LIMIT_PIN_MAX) || defined(C_LIMIT_PIN_MAX)
-#define DUAL_LIMIT_SWITCHES
-#else
-  #ifdef SQUARING_ENABLED
-    #error "Squaring requires at least one axis with dual switch inputs!"
-  #endif
-#endif
 
 #ifndef OUTPUT
 #define OUTPUT true
@@ -63,31 +57,6 @@
 #ifndef INPUT
 #define INPUT false
 #endif
-
-typedef enum {
-    GPIO_Intr_None = 0,
-    GPIO_Intr_Falling,
-    GPIO_Intr_Rising,
-    GPIO_Intr_Both,
-} gpio_intr_t;
-
-typedef struct {
-    Pio *port;
-    uint_fast8_t pin;
-    uint32_t bit;
-    pin_function_t id;
-    pin_group_t group;
-    bool debounce;
-    gpio_intr_t intr_type;
-} input_signal_t;
-
-typedef struct {
-    Pio *port;
-    uint_fast8_t pin;
-    uint32_t bit;
-    pin_function_t id;
-    pin_group_t group;
-} output_signal_t;
 
 typedef struct { 
     volatile uint_fast8_t head;
@@ -97,6 +66,7 @@ typedef struct {
 
 static bool IOInitDone = false;
 static uint32_t pulse_length, pulse_delay;
+static const io_stream_t *serial_stream;
 static axes_signals_t next_step_outbits;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static debounce_queue_t debounce_queue = {0};
@@ -113,10 +83,6 @@ static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm = {0};
 
 static void spindle_set_speed (uint_fast16_t pwm_value);
-#endif
-
-#if MODBUS_ENABLE
-static modbus_stream_t modbus_stream = {0};
 #endif
 
 static input_signal_t inputpin[] = {
@@ -136,14 +102,23 @@ static input_signal_t inputpin[] = {
     { .id = Input_SafetyDoor,   .port = SAFETY_DOOR_PORT,  .pin = SAFETY_DOOR_PIN,   .group = PinGroup_Control },
   #endif
     { .id = Input_LimitX,       .port = X_LIMIT_PORT,      .pin = X_LIMIT_PIN,       .group = PinGroup_Limit },
+  #ifdef X2_LIMIT_PIN
+    { .id = Input_LimitX_2,     .port = X2_LIMIT_PORT,     .pin = X2_LIMIT_PIN,      .group = PinGroup_Limit },
+  #endif
   #ifdef X_LIMIT_PIN_MAX
     { .id = Input_LimitX_Max,   .port = X_LIMIT_PORT_MAX,  .pin = X_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
   #endif
     { .id = Input_LimitY,       .port = Y_LIMIT_PORT,      .pin = Y_LIMIT_PIN,       .group = PinGroup_Limit },
+  #ifdef Y2_LIMIT_PIN
+   { .id = Input_LimitY_2,      .port = Y2_LIMIT_PORT,     .pin = Y2_LIMIT_PIN,      .group = PinGroup_Limit },
+  #endif
   #ifdef Y_LIMIT_PIN_MAX
     { .id = Input_LimitY_Max,   .port = Y_LIMIT_PORT_MAX,  .pin = Y_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
   #endif
     { .id = Input_LimitZ,       .port = Z_LIMIT_PORT,      .pin = Z_LIMIT_PIN,       .group = PinGroup_Limit },
+  #ifdef Z2_LIMIT_PIN
+    { .id = Input_LimitZ_2,     .port = Z2_LIMIT_PORT,     .pin = Z2_LIMIT_PIN,      .group = PinGroup_Limit },
+  #endif
   #ifdef Z_LIMIT_PIN_MAX
     { .id = Input_LimitZ_Max,   .port = Z_LIMIT_PORT_MAX,  .pin = Z_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
   #endif
@@ -166,8 +141,18 @@ static input_signal_t inputpin[] = {
     { .id = Input_LimitC_Max,   .port = C_LIMIT_PORT_MAX,  .pin = C_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
   #endif
   #if KEYPAD_ENABLE
-    { .id = Input_KeypadStrobe, .port = KEYPAD_PORT,       .pin = KEYPAD_PIN,        .group = PinGroup_Keypad }
+    { .id = Input_KeypadStrobe, .port = KEYPAD_PORT,       .pin = KEYPAD_PIN,        .group = PinGroup_Keypad },
   #endif
+    // Aux input pins must be consecutive in this array
+#ifdef AUXINPUT0_PIN
+    { .id = Input_Aux0,         .port = AUXINPUT0_PORT,    .pin = AUXINPUT0_PIN,     .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT1_PIN
+    { .id = Input_Aux1,         .port = AUXINPUT1_PORT,    .pin = AUXINPUT1_PIN,     .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT2_PIN
+    { .id = Input_Aux2,         .port = AUXINPUT2_PORT,    .pin = AUXINPUT2_PIN,     .group = PinGroup_AuxInput }
+#endif
 };
 
 static output_signal_t outputpin[] = {
@@ -214,35 +199,35 @@ static output_signal_t outputpin[] = {
     { .id = Output_DirC,            .port = C_DIRECTION_PORT,           .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #endif
 #if !TRINAMIC_ENABLE
-#ifdef STEPPERS_DISABLE_PORT
-    { .id = Output_StepperEnable,   .port = STEPPERS_DISABLE_PORT,      .pin = STEPPERS_DISABLE_PIN,    .group = PinGroup_StepperEnable },
+#ifdef STEPPERS_ENABLE_PORT
+    { .id = Output_StepperEnable,   .port = STEPPERS_ENABLE_PORT,       .pin = STEPPERS_ENABLE_PIN,     .group = PinGroup_StepperEnable },
 #endif
-#ifdef X_DISABLE_PORT
-    { .id = Output_StepperEnableX,  .port = X_DISABLE_PORT,             .pin = X_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef X_ENABLE_PORT
+    { .id = Output_StepperEnableX,  .port = X_ENABLE_PORT,              .pin = X_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
-#ifdef X2_DISABLE_PORT
-    { .id = Output_StepperEnableX,  .port = X2_DISABLE_PORT,            .pin = X2_DISABLE_PIN,          .group = PinGroup_StepperEnable },
+#ifdef X2_ENABLE_PORT
+    { .id = Output_StepperEnableX,  .port = X2_ENABLE_PORT,             .pin = X2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
 #endif
-#ifdef Y_DISABLE_PORT
-    { .id = Output_StepperEnableY,  .port = Y_DISABLE_PORT,             .pin = Y_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef Y_ENABLE_PORT
+    { .id = Output_StepperEnableY,  .port = Y_ENABLE_PORT,              .pin = Y_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
-#ifdef Y2_DISABLE_PORT
-    { .id = Output_StepperEnableY,  .port = Y2_DISABLE_PORT,            .pin = Y2_DISABLE_PIN,          .group = PinGroup_StepperEnable },
+#ifdef Y2_ENABLE_PORT
+    { .id = Output_StepperEnableY,  .port = Y2_ENABLE_PORT,             .pin = Y2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
 #endif
-#ifdef Z_DISABLE_PORT
-    { .id = Output_StepperEnableZ,  .port = Z_DISABLE_PORT,             .pin = Z_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef Z_ENABLE_PORT
+    { .id = Output_StepperEnableZ,  .port = Z_ENABLE_PORT,              .pin = Z_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
-#ifdef Z2_DISABLE_PORT
-    { .id = Output_StepperEnableZ,  .port = Z2_DISABLE_PORT,            .pin = Z2_DISABLE_PIN,          .group = PinGroup_StepperEnable },
+#ifdef Z2_ENABLE_PORT
+    { .id = Output_StepperEnableZ,  .port = Z2_ENABLE_PORT,             .pin = Z2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
 #endif
-#ifdef A_DISABLE_PORT
-    { .id = Output_StepperEnableA,  .port = A_DISABLE_PORT,             .pin = A_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef A_ENABLE_PORT
+    { .id = Output_StepperEnableA,  .port = A_ENABLE_PORT,              .pin = A_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
-#ifdef B_DISABLE_PORT
-    { .id = Output_StepperEnableB,  .port = B_DISABLE_PORT,             .pin = B_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef B_ENABLE_PORT
+    { .id = Output_StepperEnableB,  .port = B_ENABLE_PORT,              .pin = B_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
-#ifdef C_DISABLE_PORT
-    { .id = Output_StepperEnableC,  .port = C_DISABLE_PORT,             .pin = C_DISABLE_PIN,           .group = PinGroup_StepperEnable },
+#ifdef C_ENABLE_PORT
+    { .id = Output_StepperEnableC,  .port = C_ENABLE_PORT,              .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
 #endif
 #if !VFD_SPINDLE
@@ -309,6 +294,29 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         callback();
 }
 
+static bool selectStream (const io_stream_t *stream)
+{
+    static stream_type_t active_stream = StreamType_Serial;
+
+    if(!stream)
+        stream = serial_stream;
+
+    if(hal.stream.read != stream->read)
+        stream->reset_read_buffer();
+
+    memcpy(&hal.stream, stream, sizeof(io_stream_t));
+
+    if(!hal.stream.write_all)
+        hal.stream.write_all = hal.stream.write;
+
+    if(!hal.stream.enqueue_realtime_command)
+        hal.stream.enqueue_realtime_command = protocol_enqueue_realtime_command;
+
+    active_stream = hal.stream.type;
+
+    return stream->type == hal.stream.type;
+}
+
 // Set stepper pulse output pins
 
 #ifdef SQUARING_ENABLED
@@ -344,6 +352,30 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
   #ifdef C_STEP_PIN
     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_outbits_1.c;
   #endif
+}
+
+static axes_signals_t getAutoSquaredAxes (void)
+{
+    axes_signals_t ganged = {0};
+
+#if X_AUTO_SQUARE
+    ganged.x = On;
+#endif
+#if Y_AUTO_SQUARE
+    ganged.y = On;
+#endif
+#if Z_AUTO_SQUARE
+    ganged.z = On;
+#endif
+
+    return ganged;
+}
+
+// Enable/disable motors for auto squaring of ganged axes
+static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
+{
+    motors_1.mask = (mode == SquaringMode_A || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
+    motors_2.mask = (mode == SquaringMode_B || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
 }
 
 #else // SQUARING DISABLED
@@ -418,30 +450,30 @@ static void stepperEnable (axes_signals_t enable)
 #if TRINAMIC_ENABLE == 2130 && TRINAMIC_I2C
     trinamic_stepper_enable(enable);
 #else
-    BITBAND_PERI(X_DISABLE_PORT->PIO_ODSR, X_DISABLE_PIN) = enable.x;
-  #ifdef X2_DISABLE_PIN
-    BITBAND_PERI(X2_DISABLE_PORT->PIO_ODSR, X2_DISABLE_PIN) = enable.x;
+    BITBAND_PERI(X_ENABLE_PORT->PIO_ODSR, X_ENABLE_PIN) = enable.x;
+  #ifdef X2_ENABLE_PIN
+    BITBAND_PERI(X2_ENABLE_PORT->PIO_ODSR, X2_ENABLE_PIN) = enable.x;
   #endif
-  #ifdef Y_DISABLE_PIN
-    BITBAND_PERI(Y_DISABLE_PORT->PIO_ODSR, Y_DISABLE_PIN) = enable.y;
+  #ifdef Y_ENABLE_PIN
+    BITBAND_PERI(Y_ENABLE_PORT->PIO_ODSR, Y_ENABLE_PIN) = enable.y;
   #endif
-  #ifdef Y2_DISABLE_PIN
-    BITBAND_PERI(Y2_DISABLE_PORT->PIO_ODSR, Y2_DISABLE_PIN) = enable.y;
+  #ifdef Y2_ENABLE_PIN
+    BITBAND_PERI(Y2_ENABLE_PORT->PIO_ODSR, Y2_ENABLE_PIN) = enable.y;
   #endif
-  #ifdef Z_DISABLE_PIN
-    BITBAND_PERI(Z_DISABLE_PORT->PIO_ODSR, Z_DISABLE_PIN) = enable.z;
+  #ifdef Z_ENABLE_PIN
+    BITBAND_PERI(Z_ENABLE_PORT->PIO_ODSR, Z_ENABLE_PIN) = enable.z;
   #endif
-  #ifdef Z2_DISABLE_PIN
-    BITBAND_PERI(Z2_DISABLE_PORT->PIO_ODSR, Z2_DISABLE_PIN) = enable.z;
+  #ifdef Z2_ENABLE_PIN
+    BITBAND_PERI(Z2_ENABLE_PORT->PIO_ODSR, Z2_ENABLE_PIN) = enable.z;
   #endif
-  #ifdef A_DISABLE_PIN
-    BITBAND_PERI(A_DISABLE_PORT->PIO_ODSR, A_DISABLE_PIN) = enable.a;
+  #ifdef A_ENABLE_PIN
+    BITBAND_PERI(A_ENABLE_PORT->PIO_ODSR, A_ENABLE_PIN) = enable.a;
   #endif
-  #ifdef B_DISABLE_PIN
-    BITBAND_PERI(B_DISABLE_PORT->PIO_ODSR, B_DISABLE_PIN) = enable.b;
+  #ifdef B_ENABLE_PIN
+    BITBAND_PERI(B_ENABLE_PORT->PIO_ODSR, B_ENABLE_PIN) = enable.b;
   #endif
-  #ifdef C_DISABLE_PIN
-    BITBAND_PERI(C_DISABLE_PORT->PIO_ODSR, C_DISABLE_PIN) = enable.c;
+  #ifdef C_ENABLE_PIN
+    BITBAND_PERI(C_ENABLE_PORT->PIO_ODSR, C_ENABLE_PIN) = enable.c;
   #endif
 #endif
 }
@@ -518,18 +550,18 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
     }
 }
 
-#ifdef DUAL_LIMIT_SWITCHES
-
-// Returns limit state as an axes_signals_t variable.
+// Returns limit state as an limit_signals_t variable.
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
-// Dual limit switch inputs per axis version. Only one needs to be dual input!
-inline static limit_signals_t limitsGetState()
+inline static limit_signals_t limitsGetState (void)
 {
     limit_signals_t signals = {0};
 
     signals.min.mask = signals.max.mask = settings.limits.invert.mask;
-#ifdef SQUARING_ENABLED
+#ifdef DUAL_LIMIT_SWITCHES
     signals.min2.mask = settings.limits.invert.mask;
+#endif
+#ifdef MAX_LIMIT_SWITCHES
+    signals.max.mask = settings.limits.invert.mask;
 #endif
     
     signals.min.x = BITBAND_PERI(X_LIMIT_PORT->PIO_PDSR, X_LIMIT_PIN);
@@ -545,26 +577,24 @@ inline static limit_signals_t limitsGetState()
     signals.min.c = BITBAND_PERI(C_LIMIT_PORT->PIO_PDSR, C_LIMIT_PIN);
 #endif
 
+#ifdef X2_LIMIT_PIN
+    signals.min2.x = BITBAND_PERI(X2_LIMIT_PORT->PIO_PDSR, X2_LIMIT_PIN);
+#endif
+#ifdef Y2_LIMIT_PIN
+    signals.min2.y = BITBAND_PERI(Y2_LIMIT_PORT->PIO_PDSR, Y2_LIMIT_PIN);
+#endif
+#ifdef Z2_LIMIT_PIN
+    signals.min2.x = BITBAND_PERI(Z2_LIMIT_PORT->PIO_PDSR, Z2_LIMIT_PIN);
+#endif
+
 #ifdef X_LIMIT_PIN_MAX
-  #if X_AUTO_SQUARE
-    signals.min2.x = BITBAND_PERI(X_LIMIT_PORT_MAX->PIO_PDSR, X_LIMIT_PIN_MAX);
-  #else
     signals.max.x = BITBAND_PERI(X_LIMIT_PORT_MAX->PIO_PDSR, X_LIMIT_PIN_MAX);
-  #endif
 #endif
 #ifdef Y_LIMIT_PIN_MAX
-  #if Y_AUTO_SQUARE
-    signals.min2.y = BITBAND_PERI(Y_LIMIT_PORT_MAX->PIO_PDSR, Y_LIMIT_PIN_MAX);
-  #else
     signals.max.y = BITBAND_PERI(Y_LIMIT_PORT_MAX->PIO_PDSR, Y_LIMIT_PIN_MAX);
-  #endif
 #endif
 #ifdef Z_LIMIT_PIN_MAX
-  #if Z_AUTO_SQUARE
-    signals.min2.z = BITBAND_PERI(Z_LIMIT_PORT_MAX->PIO_PDSR, Z_LIMIT_PIN_MAX);
-  #else
     signals.max.z = BITBAND_PERI(Z_LIMIT_PORT_MAX->PIO_PDSR, Z_LIMIT_PIN_MAX);
-  #endif
 #endif
 #ifdef A_LIMIT_PIN_MAX
     signals.max.a = BITBAND_PERI(A_LIMIT_PORT_MAX->PIO_PDSR, A_LIMIT_PIN_MAX);
@@ -578,75 +608,16 @@ inline static limit_signals_t limitsGetState()
 
     if (settings.limits.invert.mask) {
         signals.min.value ^= settings.limits.invert.mask;
-        signals.max.value ^= settings.limits.invert.mask;
-#ifdef SQUARING_ENABLED
+#ifdef DUAL_LIMIT_SWITCHES
         signals.min2.mask ^= settings.limits.invert.mask;
+#endif
+#ifdef MAX_LIMIT_SWITCHES
+        signals.max.value ^= settings.limits.invert.mask;
 #endif
     }
 
     return signals;
 }
-
-#else // SINGLE INPUT LIMIT SWITCHES
-
-// Returns limit state as an axes_signals_t variable.
-// Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
-// Single limit switch input per axis version.
-inline static limit_signals_t limitsGetState()
-{
-    limit_signals_t signals = {0};
-    
-    signals.min.x = BITBAND_PERI(X_LIMIT_PORT->PIO_PDSR, X_LIMIT_PIN);
-
-    signals.min.y = BITBAND_PERI(Y_LIMIT_PORT->PIO_PDSR, Y_LIMIT_PIN);
-
-    signals.min.z = BITBAND_PERI(Z_LIMIT_PORT->PIO_PDSR, Z_LIMIT_PIN);
-
-#ifdef A_LIMIT_PIN
-    signals.min.a = BITBAND_PERI(A_LIMIT_PORT->PIO_PDSR, A_LIMIT_PIN);
-#endif
-#ifdef B_LIMIT_PIN
-    signals.min.b = BITBAND_PERI(B_LIMIT_PORT->PIO_PDSR, B_LIMIT_PIN);
-#endif
-#ifdef C_LIMIT_PIN
-    signals.min.c = BITBAND_PERI(C_LIMIT_PORT->PIO_PDSR, C_LIMIT_PIN);
-#endif
-
-    if (settings.limits.invert.mask)
-        signals.min.value ^= settings.limits.invert.mask;
-
-    return signals;
-}
-
-#endif
-
-#ifdef SQUARING_ENABLED
-
-static axes_signals_t getAutoSquaredAxes (void)
-{
-    axes_signals_t ganged = {0};
-
-    #if X_AUTO_SQUARE
-    ganged.x = On;
-#endif
-#if Y_AUTO_SQUARE
-    ganged.y = On;
-#endif
-#if Z_AUTO_SQUARE
-    ganged.z = On;
-#endif
-
-    return ganged;
-}
-
-// Enable/disable motors for auto squaring of ganged axes
-static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
-{
-    motors_1.mask = (mode == SquaringMode_A || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
-    motors_2.mask = (mode == SquaringMode_B || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
-}
-
-#endif
 
 // Enable/disable limit pins interrupt
 static void limitsEnable (bool on, bool homing)
@@ -912,7 +883,42 @@ static void PIO_Mode (Pio *port, uint32_t bit, bool mode)
     port->PIO_WPMR = PIO_WPMR_WPKEY(0x50494F)|PIO_WPMR_WPEN;
 }
 
-static void PIO_InputMode (Pio *port, uint32_t bit, bool no_pullup, gpio_intr_t intr_type, bool irq_enable)
+void PIO_EnableInterrupt (const input_signal_t *input, pin_irq_mode_t irq_mode)
+{
+    input->port->PIO_IDR = input->bit;
+
+    switch(irq_mode) {
+
+        case IRQ_Mode_Falling:
+            input->port->PIO_AIMER = input->bit;
+            input->port->PIO_ESR = input->bit;
+            input->port->PIO_FELLSR = input->bit;
+            break;
+
+        case IRQ_Mode_Rising:
+            input->port->PIO_AIMER = input->bit;
+            input->port->PIO_ESR = input->bit;
+            input->port->PIO_REHLSR = input->bit;
+            break;
+
+        case IRQ_Mode_Change:
+            input->port->PIO_AIMDR = input->bit;
+            input->port->PIO_ESR = input->bit;
+            break;
+
+        default:
+            break;
+    }
+
+    input->port->PIO_ISR; // Clear interrupts
+
+    if(!(irq_mode == IRQ_Mode_None || input->group == PinGroup_Limit))
+        input->port->PIO_IER = input->bit;
+    else
+        input->port->PIO_IDR = input->bit;
+} 
+
+static inline void PIO_InputMode (Pio *port, uint32_t bit, bool no_pullup)
 {
     port->PIO_WPMR = PIO_WPMR_WPKEY(0x50494F);
 
@@ -924,36 +930,8 @@ static void PIO_InputMode (Pio *port, uint32_t bit, bool no_pullup, gpio_intr_t 
     else
         port->PIO_PUER = bit;
 
-    switch(intr_type) {
-
-        case GPIO_Intr_Falling:
-            port->PIO_AIMER = bit;
-            port->PIO_ESR = bit;
-            port->PIO_FELLSR = bit;
-            break;
-
-        case GPIO_Intr_Rising:
-            port->PIO_AIMER = bit;
-            port->PIO_ESR = bit;
-            port->PIO_REHLSR = bit;
-            break;
-
-        case GPIO_Intr_Both:
-            port->PIO_AIMDR = bit;
-            port->PIO_ESR = bit;
-            break;
-
-        default:
-            break;
-    }
-
-    if(irq_enable && intr_type != GPIO_Intr_None)
-        port->PIO_IER = bit;
-    else
-        port->PIO_IDR = bit;
-
     port->PIO_WPMR = PIO_WPMR_WPKEY(0x50494F)|PIO_WPMR_WPEN;
-} 
+}
 
 // Configures perhipherals when settings are initialized or changed
 void settings_changed (settings_t *settings)
@@ -991,7 +969,8 @@ void settings_changed (settings_t *settings)
          *  Control, limit & probe pins config  *
          ****************************************/
 
-        bool pullup = true, irq_enable = false;
+        bool pullup;
+        input_signal_t *input;
 
         control_signals_t control_fei;
         control_fei.mask = settings->control_disable_pullup.mask ^ settings->control_invert.mask;
@@ -1008,34 +987,34 @@ void settings_changed (settings_t *settings)
 
         do {
 
-            irq_enable = false;
+            input = &inputpin[--i];
 
-            if(inputpin[--i].port != NULL) {
+            pullup = false;
+            input->bit = 1U << input->pin;
+            input->irq_mode = IRQ_Mode_None;
 
-                switch(inputpin[i].id) {
+            if(input->port != NULL) {
+
+                switch(input->id) {
 
                     case Input_Reset:
-                        irq_enable = true;
                         pullup = !settings->control_disable_pullup.reset;
-                        inputpin[i].intr_type = control_fei.reset ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = control_fei.reset ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_FeedHold:
-                        irq_enable = true;
                         pullup = !settings->control_disable_pullup.feed_hold;
-                        inputpin[i].intr_type = control_fei.feed_hold ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = control_fei.feed_hold ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_CycleStart:
-                        irq_enable = true;
                         pullup = !settings->control_disable_pullup.cycle_start;
-                        inputpin[i].intr_type = control_fei.cycle_start ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = control_fei.cycle_start ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_SafetyDoor:     
-                        irq_enable = true;
                         pullup = !settings->control_disable_pullup.safety_door_ajar;
-                        inputpin[i].intr_type = control_fei.safety_door_ajar ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = control_fei.safety_door_ajar ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_Probe:
@@ -1046,68 +1025,70 @@ void settings_changed (settings_t *settings)
                     case Input_LimitX_2:
                     case Input_LimitX_Max:
                         pullup = !settings->limits.disable_pullup.x;
-                        inputpin[i].intr_type = limit_fei.x ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.x ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_LimitY:
                     case Input_LimitY_2:
                     case Input_LimitY_Max:
                         pullup = !settings->limits.disable_pullup.y;
-                        inputpin[i].intr_type = limit_fei.y ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.y ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_LimitZ:
                     case Input_LimitZ_2:
                     case Input_LimitZ_Max:
                         pullup = !settings->limits.disable_pullup.z;
-                        inputpin[i].intr_type = limit_fei.z ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.z ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
 
                     case Input_LimitA:
                     case Input_LimitA_Max:
                         pullup = !settings->limits.disable_pullup.a;
-                        inputpin[i].intr_type = limit_fei.a ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.a ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_LimitB:
                     case Input_LimitB_Max:
                         pullup = !settings->limits.disable_pullup.b;
-                        inputpin[i].intr_type = limit_fei.b ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_LimitC:
                     case Input_LimitC_Max:
                         pullup = !settings->limits.disable_pullup.c;
-                        inputpin[i].intr_type = limit_fei.c ? GPIO_Intr_Falling : GPIO_Intr_Rising;
+                        input->irq_mode = limit_fei.c ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
                     case Input_KeypadStrobe:
                         pullup = true;
-                        irq_enable = true;
-                        inputpin[i].intr_type = GPIO_Intr_Both; // -> any edge?
+                        input->irq_mode = IRQ_Mode_Change;
                         break;
 
                     default:
-                        pullup = false;
-                        irq_enable = false;
-                        inputpin[i].intr_type = GPIO_Intr_None;
                         break;
                 }
 
-                inputpin[i].bit = 1U << inputpin[i].pin;
-                PIO_Mode(inputpin[i].port, inputpin[i].bit, INPUT);
-                PIO_InputMode(inputpin[i].port, inputpin[i].bit, !pullup, inputpin[i].intr_type, irq_enable);
+                if(input->group == PinGroup_AuxInput) {
+                    pullup = true;
+                    input->cap.pull_mode = (PullMode_Up|PullMode_Down);
+                    input->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling);
+                }
 
-                inputpin[i].debounce = hal.driver_cap.software_debounce && !(inputpin[i].group == PinGroup_Probe || inputpin[i].group == PinGroup_Keypad);
+                PIO_Mode(input->port, input->bit, INPUT);
+                PIO_InputMode(input->port, input->bit, !pullup);
+                PIO_EnableInterrupt(input, input->irq_mode);
 
-                if(inputpin[i].port == PIOA)
+                input->debounce = hal.driver_cap.software_debounce && !(input->group == PinGroup_Probe || input->group == PinGroup_Keypad || input->group == PinGroup_AuxInput);
+
+                if(input->port == PIOA)
                     memcpy(&a_signals[a++], &inputpin[i], sizeof(input_signal_t));
-                else if(inputpin[i].port == PIOB)
+                else if(input->port == PIOB)
                     memcpy(&b_signals[b++], &inputpin[i], sizeof(input_signal_t));
-                else if(inputpin[i].port == PIOC)
+                else if(input->port == PIOC)
                     memcpy(&c_signals[c++], &inputpin[i], sizeof(input_signal_t));
-                else if(inputpin[i].port == PIOD)
+                else if(input->port == PIOD)
                     memcpy(&d_signals[d++], &inputpin[i], sizeof(input_signal_t));
             }
         } while(i);
@@ -1348,10 +1329,10 @@ bool nvsWrite (uint8_t *source)
 
 bool nvsInit (void)
 {
-    if(hal.nvs.size & ~(IFLASH1_PAGE_SIZE - 1))
-        grblNVS.pages = (hal.nvs.size & ~(IFLASH1_PAGE_SIZE - 1)) / IFLASH1_PAGE_SIZE + 1;
+    if(NVS_SIZE & ~(IFLASH1_PAGE_SIZE - 1))
+        grblNVS.pages = (NVS_SIZE & ~(IFLASH1_PAGE_SIZE - 1)) / IFLASH1_PAGE_SIZE + 1;
     else
-        grblNVS.pages = hal.nvs.size / IFLASH1_PAGE_SIZE;
+        grblNVS.pages = NVS_SIZE / IFLASH1_PAGE_SIZE;
 
 //  grblNVS.row_size = IFLASH1_LOCK_REGION_SIZE; // 16K
     grblNVS.page = IFLASH1_NB_OF_PAGES - grblNVS.pages;
@@ -1401,7 +1382,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210604";
+	hal.driver_version = "210626";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1442,30 +1423,8 @@ bool driver_init (void)
     hal.spindle.update_rpm = spindleUpdateRPM;
   #endif
 #endif
-    
-    hal.control.get_state = systemGetState;
 
-#if USB_SERIAL_CDC
-    usb_serialInit();
-    hal.stream.read = usb_serialGetC;
-    hal.stream.get_rx_buffer_available = usb_serialRxFree;
-    hal.stream.reset_read_buffer = usb_serialRxFlush;
-    hal.stream.cancel_read_buffer = usb_serialRxCancel;
-    hal.stream.write = usb_serialWriteS;
-    hal.stream.write_all = usb_serialWriteS;
-    hal.stream.write_char = usb_serialPutC;
-    hal.stream.suspend_read = usb_serialSuspendInput;
-#else
-    serialInit();
-    hal.stream.read = serialGetC;
-    hal.stream.get_rx_buffer_available = serialRxFree;
-    hal.stream.reset_read_buffer = serialRxFlush;
-    hal.stream.cancel_read_buffer = serialRxCancel;
-    hal.stream.write = serialWriteS;
-    hal.stream.write_all = serialWriteS;
-    hal.stream.write_char = serialPutC;
-    hal.stream.suspend_read = serialSuspendInput;
-#endif
+    hal.control.get_state = systemGetState;
 
 #if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
     i2c_init();
@@ -1491,8 +1450,14 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
 
 #if USB_SERIAL_CDC
+    serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
+#else
+    serial_stream = serialInit();
 #endif
+
+    hal.stream_select = selectStream;
+    hal.stream_select(serial_stream);
 
 #ifdef DEBUGOUT
     hal.debug_out = debug_out;
@@ -1520,6 +1485,33 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
+#ifdef HAS_IOPORTS
+    uint32_t i;
+    input_signal_t *input;
+    static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
+
+    for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
+        input = &inputpin[i];
+        if(input->group == PinGroup_AuxInput) {
+            if(aux_inputs.pins.inputs == NULL)
+                aux_inputs.pins.inputs = input;
+            aux_inputs.n_pins++;
+        }
+    }
+
+    output_signal_t *output;
+    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        output = &outputpin[i];
+        if(output->group == PinGroup_AuxOutput) {
+            if(aux_outputs.pins.outputs == NULL)
+                aux_outputs.pins.outputs = output;
+            aux_outputs.n_pins++;
+        }
+    }
+
+    ioports_init(&aux_inputs, &aux_outputs);
+#endif
+
 #if TRINAMIC_ENABLE == 2130
     trinamic_init();
 #endif
@@ -1528,22 +1520,20 @@ bool driver_init (void)
     keypad_init();
 #endif
 
-#if MODBUS_ENABLE
-    serial2Init(19200);
-
-    modbus_stream.rx_timeout = 500;
-    modbus_stream.write = serial2Write;
-    modbus_stream.read = serial2GetC;
-    modbus_stream.flush_rx_buffer = serial2RxFlush;
-    modbus_stream.flush_tx_buffer = serial2TxFlush;
-    modbus_stream.get_rx_buffer_count = serial2RxCount;
-    modbus_stream.get_tx_buffer_count = serial2TxCount;
-
-    modbus_init(&modbus_stream);
+#if SPINDLE_HUANYANG
+    huanyang_init(modbus_init(serial2Init(19200), NULL));
 #endif
 
-#if SPINDLE_HUANYANG
-    huanyang_init(&modbus_stream);
+#if BLUETOOTH_ENABLE
+ #if BLUETOOTH_ENABLE == 2
+    bluetooth_init(serial2Init(115200));
+ #else
+  #if USB_SERIAL_CDC
+    bluetooth_init(serialInit());
+  #else
+    bluetooth_init(serial_stream);
+  #endif
+ #endif
 #endif
 
     my_plugin_init();
@@ -1621,7 +1611,7 @@ static void DEBOUNCE_IRQHandler (void)
         signal->port->PIO_ISR;
         signal->port->PIO_IER = signal->bit;
 
-        if((signal->port->PIO_PDSR & signal->bit) == (signal->intr_type == GPIO_Intr_Falling ? 0 : signal->bit))
+        if((signal->port->PIO_PDSR & signal->bit) == (signal->irq_mode == IRQ_Mode_Falling ? 0 : signal->bit))
           switch(signal->group) {
 
             case PinGroup_Limit:
@@ -1645,8 +1635,20 @@ inline static void PIO_IRQHandler (input_signal_t *signals, uint32_t isr)
             if(signals[i].debounce && enqueue_debounce(&signals[i])) {
                 signals[i].port->PIO_IDR = signals[i].bit;
                 debounce = true;
-            } else
-                grp |= signals[i].group;
+            } else switch(signals[i].group) {
+
+                case PinGroup_AuxInput:
+                    ioports_event(&signals[i]);
+                    break;
+#if KEYPAD_ENABLE
+                case PinGroup_Keypad:
+                    keypad_keyclick_handler(!BITBAND_PERI(KEYPAD_PORT->PIO_PDSR, KEYPAD_PIN));
+                    break;
+#endif
+                default:
+                    grp |= signals[i].group;
+                    break;
+            }
         }
         i++;
     }
@@ -1662,11 +1664,6 @@ inline static void PIO_IRQHandler (input_signal_t *signals, uint32_t isr)
 
     if(grp & PinGroup_Control)
         hal.control.interrupt_callback(systemGetState());
-
-#if KEYPAD_ENABLE
-    if(grp & PinGroup_Keypad)
-        keypad_keyclick_handler(!BITBAND_PERI(KEYPAD_PORT->PIO_PDSR, KEYPAD_PIN));
-#endif
 }
 
 static void PIOA_IRQHandler (void)

@@ -19,6 +19,10 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if (N_AUTO_SQUARED && N_AUTO_SQUARED < N_ABC_MOTORS) || N_ABC_MOTORS > 2
+#error "Axis configuration is not supported!"
+#endif
+
 #define BOARD_NAME "Radds 1.6"
 
  // Define step pulse output pins.
@@ -31,16 +35,6 @@
 #define Z_STEP_PORT         PIOB
 #define Z_STEP_PIN          25  // Due Digital Pin 2
 #define Z_STEP_BIT          (1<<Z_STEP_PIN)
-#ifdef A_AXIS
-#define A_STEP_PORT         PIOD
-#define A_STEP_PIN          1   // Due Digital Pin 61?
-#define A_STEP_BIT          (1<<A_STEP_PIN)
-#endif
-#ifdef B_AXIS
-#define B_STEP_PORT         PIOC
-#define B_STEP_PIN          4   // Due Digital Pin 64?
-#define B_STEP_BIT          (1<<B_STEP_PIN)
-#endif
 
 // Define step direction output pins.
 #define X_DIRECTION_PORT    PIOB
@@ -52,37 +46,17 @@
 #define Z_DIRECTION_PORT    PIOC
 #define Z_DIRECTION_PIN     28  // Due Digital Pin 3
 #define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
-#ifdef A_AXIS
-#define A_DIRECTION_PORT    PIOD
-#define A_DIRECTION_PIN     3   // Due Digital Pin 60?
-#define A_DIRECTION_BIT     (1<<A_DIRECTION_PIN)
-#endif
-#ifdef B_AXIS
-#define B_DIRECTION_PORT    PIOC
-#define B_DIRECTION_PIN     2   // Due Digital Pin 63?
-#define B_DIRECTION_BIT     (1<<B_DIRECTION_PIN)
-#endif
 
 // Define stepper driver enable/disable output pin(s).
-#define X_DISABLE_PORT      PIOD
-#define X_DISABLE_PIN       1   // Due Digital Pin 26
-#define X_DISABLE_BIT       (1<<X_DISABLE_PIN)
-#define Y_DISABLE_PORT      PIOB
-#define Y_DISABLE_PIN       26  // Due Analog Pin 22
-#define Y_DISABLE_BIT       (1<<Y_DISABLE_PIN)
-#define Z_DISABLE_PORT      PIOD
-#define Z_DISABLE_PIN       5  // Due Analog Pin 15
-#define Z_DISABLE_BIT       (1<<Z_DISABLE_PIN)
-#ifdef A_AXIS
-#define A_DISABLE_PORT      PIOA
-#define A_DISABLE_PIN       15  // Due Digital Pin 62?
-#define A_DISABLE_BIT       (1<<A_DISABLE_PIN)
-#endif
-#ifdef B_AXIS
-#define B_DISABLE_PORT      PIOC
-#define B_DISABLE_PIN       9   // Due Digital Pin 65
-#define B_DISABLE_BIT       (1<<B_DISABLE_PIN)
-#endif
+#define X_ENABLE_PORT       PIOD
+#define X_ENABLE_PIN        1   // Due Digital Pin 26
+#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
+#define Y_ENABLE_PORT       PIOB
+#define Y_ENABLE_PIN        26  // Due Analog Pin 22
+#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
+#define Z_ENABLE_PORT       PIOD
+#define Z_ENABLE_PIN        5  // Due Analog Pin 15
+#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PORT        PIOD
@@ -96,15 +70,52 @@
 #define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
 
 // Define homing/hard limit switch input pins.
+#if X_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOC
+#define M3_LIMIT_PIN        2  // Due Digital Pin 34
+#else
 #define X_LIMIT_PORT_MAX    PIOC
 #define X_LIMIT_PIN_MAX     2  // Due Digital Pin 34
 #define X_LIMIT_BIT_MAX     (1<<X_LIMIT_PIN_MAX)
+#endif
+#if Y_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOC
+#define M3_LIMIT_PIN        4   // Due Digital Pin 36
+#else
 #define Y_LIMIT_PORT_MAX    PIOC
 #define Y_LIMIT_PIN_MAX     4   // Due Digital Pin 36
 #define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
+#endif
+#if X_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOC
+#define M3_LIMIT_PIN        6  // Due Digital Pin 38
+#else
 #define Z_LIMIT_PORT_MAX    PIOC
 #define Z_LIMIT_PIN_MAX     6  // Due Digital Pin 38
 #define Z_LIMIT_BIT_MAX     (1<<Z_LIMIT_PIN_MAX)
+#endif
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PORT        PIOD
+#define M3_STEP_PIN         1   // Due Digital Pin 61?
+#define M3_DIRECTION_PORT   PIOD
+#define M3_DIRECTION_PIN    3   // Due Digital Pin 60?
+#define M3_ENABLE_PORT      PIOA
+#define M3_ENABLE_PIN       15  // Due Digital Pin 62?
+#endif
+
+// Define ganged axis or B axis step pulse and step direction output pins.
+#if N_ABC_MOTORS == 2
+#define M4_AVAILABLE
+#define M4_STEP_PORT        PIOC
+#define M4_STEP_PIN         4   // Due Digital Pin 64?
+#define M4_DIRECTION_PORT   PIOC
+#define M4_DIRECTION_PIN    2   // Due Digital Pin 63?
+#define M4_ENABLE_PORT      PIOC
+#define M4_ENABLE_PIN       9   // Due Digital Pin 65
+#endif
 
 #ifndef MODBUS_ENABLE
 

@@ -41,20 +41,6 @@ static stream_block_tx_buffer_t txbuf = {0};
 static char rxbuf[BLOCK_RX_BUFFER_SIZE];
 static stream_rx_buffer_t usb_rxbuffer;
 
-void usb_serialInit(void)
-{
-    txbuf.s = txbuf.data;
-
-    SerialUSB.begin(BAUD_RATE);
-
-#if USB_SERIAL_WAIT
-    while(!SerialUSB); // Wait for connection
-#endif
-
-    txbuf.max_length = SerialUSB.availableForWrite(); // 511 bytes
-    txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;    
-}
-
 //
 // Returns number of characters in serial input buffer
 //
@@ -181,10 +167,55 @@ int16_t usb_serialGetC (void)
 
     return (int16_t)data;
 }
+/*
+typedef struct {
+    stream_type_t type;                                     //!< Type of stream.
+    bool connected;                                         //!< Set to true by the driver if stream is connected. _Optional._ Under consideration.
+    get_rx_buffer_available_ptr get_rx_buffer_available;    //!< Handler for getting number of characters in the input buffer.
+    stream_write_ptr write;                                 //!< Handler for writing string to current output stream only.
+    stream_write_ptr write_all;                             //!< Handler for writing string to all active output streams.
+    stream_write_char_ptr write_char;                       //!< Handler for writing a single character to current stream only.
+    stream_read_ptr read;                                   //!< Handler for reading a single character from the input stream.
+    reset_read_buffer_ptr reset_read_buffer;                //!< Handler for flushing the input buffer.
+    cancel_read_buffer_ptr cancel_read_buffer;              //!< Handler for flushing the input buffer and inserting an #ASCII_CAN character.
+    suspend_read_ptr suspend_read;                          //!< Optional handler for saving away and restoring the current input buffer.
+    set_baud_rate_ptr set_baud_rate;                        //!< Optional handler for setting the stream baud rate.
+    enqueue_realtime_command_ptr enqueue_realtime_command;  //!< Handler for extracting real-time commands from the input stream. _Set by the core at startup._
+} io_stream_t;
 
+*/
 bool usb_serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&usb_rxbuffer, suspend);
+}
+
+const io_stream_t *usb_serialInit(void)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = false,
+        .get_rx_buffer_free = usb_serialRxFree,
+        .write = usb_serialWriteS,
+        .write_all = usb_serialWriteS,
+        .write_char = usb_serialPutC,
+        .read = usb_serialGetC,
+        .reset_read_buffer = usb_serialRxFlush,
+        .cancel_read_buffer = usb_serialRxCancel,
+        .suspend_read = usb_serialSuspendInput
+    };
+
+    txbuf.s = txbuf.data;
+
+    SerialUSB.begin(BAUD_RATE);
+
+#if USB_SERIAL_WAIT
+    while(!SerialUSB); // Wait for connection
+#endif
+
+    txbuf.max_length = SerialUSB.availableForWrite(); // 511 bytes
+    txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
+
+    return &stream;
 }
 
 //

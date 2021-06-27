@@ -31,7 +31,7 @@ extern void usb_execute_realtime (uint_fast16_t state);
 
 #define usb_serial_poll() usb_execute_realtime(0)
 
-void usb_serialInit(void);
+const io_stream_t *usb_serialInit(void);
 int16_t usb_serialGetC(void);
 bool usb_serialPutC(const char c);
 void usb_serialWriteS(const char *s);

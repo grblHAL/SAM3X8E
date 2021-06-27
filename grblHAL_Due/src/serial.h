@@ -134,7 +134,8 @@
 extern "C" {
 #endif
 
-void serialInit(void);
+const io_stream_t *serialInit(void);
+bool serialSetBaudRate (uint32_t baud_rate);
 int16_t serialGetC(void);
 bool serialPutC(const char c);
 void serialWriteS(const char *s);
@@ -149,7 +150,7 @@ void serialRxFlush(void);
 void serialRxCancel(void);
 
 #ifdef SERIAL2_DEVICE
-void serial2Init(uint32_t baud_rate);
+const io_stream_t *serial2Init(uint32_t baud_rate);
 int16_t serial2GetC(void);
 bool serial2PutC(const char c);
 void serial2WriteS(const char *s);

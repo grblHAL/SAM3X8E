@@ -28,42 +28,6 @@ static stream_rx_buffer_t rxbuffer = {0};
 
 static void SERIAL_IRQHandler (void);
 
-void serialInit (void)
-{
-    pmc_enable_periph_clk(SERIAL_ID);
-    pmc_enable_periph_clk(SERIAL_PORT_ID);
-
-#if SERIAL_DEVICE < 0
-    SERIAL_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
-    SERIAL_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
-
-    SERIAL_PERIPH->UART_MR = UART_MR_PAR_NO;
-    SERIAL_PERIPH->UART_BRGR = (SystemCoreClock / 115200) >> 4;
-    SERIAL_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
-
-    SERIAL_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
-#else
-    SERIAL_PORT->PIO_WPMR = 0x50494F;
-    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
-
-    SERIAL_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
-    SERIAL_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
-
-    SERIAL_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
-    SERIAL_PERIPH->US_BRGR = (SystemCoreClock / 115200) >> 4;
-    SERIAL_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
-
-    SERIAL_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
-#endif
-
-    IRQRegister(SERIAL_IRQ, SERIAL_IRQHandler);
-
-    NVIC_EnableIRQ(SERIAL_IRQ);
-    NVIC_SetPriority(SERIAL_IRQ, 1);
-}
-
 //
 // Returns number of characters in serial output buffer
 //
@@ -214,6 +178,65 @@ bool serialSuspendInput (bool suspend)
     return stream_rx_suspend(&rxbuffer, suspend);
 }
 
+bool serialSetBaudRate (uint32_t baud_rate)
+{
+#if SERIAL_DEVICE < 0
+    SERIAL_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+    SERIAL_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
+
+    SERIAL_PERIPH->UART_MR = UART_MR_PAR_NO;
+    SERIAL_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
+
+    SERIAL_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
+#else
+    SERIAL_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    SERIAL_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
+
+    SERIAL_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+    SERIAL_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+
+    SERIAL_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
+#endif
+
+    return true;
+}
+
+const io_stream_t *serialInit (void)
+{
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .read = serialGetC,
+        .write = serialWriteS,
+        .write_char = serialPutC,
+        .get_rx_buffer_free = serialRxFree,
+        .reset_read_buffer = serialRxFlush,
+        .cancel_read_buffer = serialRxCancel,
+        .suspend_read = serialSuspendInput,
+        .set_baud_rate = serialSetBaudRate
+    };
+
+    pmc_enable_periph_clk(SERIAL_ID);
+    pmc_enable_periph_clk(SERIAL_PORT_ID);
+
+#if SERIAL_DEVICE >= 0
+    SERIAL_PORT->PIO_WPMR = 0x50494F;
+    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
+    SERIAL_PORT->PIO_OER  = SERIAL_TX;
+    SERIAL_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
+#endif
+
+    serialSetBaudRate(115200);
+
+    IRQRegister(SERIAL_IRQ, SERIAL_IRQHandler);
+
+    NVIC_EnableIRQ(SERIAL_IRQ);
+    NVIC_SetPriority(SERIAL_IRQ, 1);
+
+    return &stream;
+}
+
 //
 static void SERIAL_IRQHandler (void)
 {
@@ -279,31 +302,6 @@ static stream_tx_buffer_t tx2buffer = {0};
 static stream_rx_buffer_t rx2buffer = {0};
 
 static void SERIAL2_IRQHandler (void);
-
-void serial2Init (uint32_t baud_rate)
-{
-    pmc_enable_periph_clk(SERIAL2_ID);
-    pmc_enable_periph_clk(SERIAL2_PORT_ID);
-
-    SERIAL2_PORT->PIO_WPMR = 0x50494F;
-    SERIAL2_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL2_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL2_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
-
-    SERIAL2_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
-    SERIAL2_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
-
-    SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
-    SERIAL2_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
-    SERIAL2_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
-
-    SERIAL2_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
-
-    IRQRegister(SERIAL2_IRQ, SERIAL2_IRQHandler);
-
-    NVIC_EnableIRQ(SERIAL2_IRQ);
-    NVIC_SetPriority(SERIAL2_IRQ, 1);
-}
 
 //
 // Returns number of characters in serial output buffer
@@ -449,6 +447,81 @@ int16_t serial2GetC (void)
     rx2buffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
 
     return (int16_t)data;
+}
+
+bool serial2SetBaudRate (uint32_t baud_rate)
+{
+#if SERIAL2_DEVICE < 0
+    SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+    SERIAL2_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
+
+    SERIAL2_PERIPH->UART_MR = UART_MR_PAR_NO;
+    SERIAL2_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL2_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
+
+    SERIAL2_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
+#else
+    SERIAL2_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    SERIAL2_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
+
+    SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+    SERIAL2_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL2_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+
+    SERIAL2_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
+#endif
+
+    return true;
+}
+
+const io_stream_t *serial2Init (uint32_t baud_rate)
+{
+    static const io_stream_t zstream = {
+        .type = StreamType_Serial,
+        .read = serial2GetC,
+        .write = serial2WriteS,
+        .write_char = serial2PutC,
+        .get_rx_buffer_free = serial2RxFree,
+        .reset_read_buffer = serial2RxFlush,
+        .cancel_read_buffer = serial2RxCancel,
+//        .suspend_read = serial2SuspendInput,
+        .set_baud_rate = serial2SetBaudRate
+    };
+
+    static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = true,
+        .read = serial2GetC,
+        .write = serial2WriteS,
+        .write_n =  serial2Write,
+        .write_char = serial2PutC,
+        .write_all = serial2WriteS,
+        .get_rx_buffer_free = serial2RxFree,
+        .get_rx_buffer_count = serial2RxCount,
+        .get_tx_buffer_count = serial2TxCount,
+        .reset_write_buffer = serial2TxFlush,
+        .reset_read_buffer = serial2RxFlush,
+        .cancel_read_buffer = serial2RxCancel,
+    //    .suspend_read = serial2SuspendInput,
+        .set_baud_rate = serial2SetBaudRate
+    };
+
+    pmc_enable_periph_clk(SERIAL2_ID);
+    pmc_enable_periph_clk(SERIAL2_PORT_ID);
+
+    SERIAL2_PORT->PIO_WPMR = 0x50494F;
+    SERIAL2_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
+    SERIAL2_PORT->PIO_OER  = SERIAL_TX;
+    SERIAL2_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
+
+    serial2SetBaudRate(baud_rate);
+
+    IRQRegister(SERIAL2_IRQ, SERIAL2_IRQHandler);
+
+    NVIC_EnableIRQ(SERIAL2_IRQ);
+    NVIC_SetPriority(SERIAL2_IRQ, 1);
+
+    return &stream;
 }
 
 //

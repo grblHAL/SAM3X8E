@@ -21,6 +21,10 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if N_ABC_MOTORS
+#error "Axis configuration is not supported!"
+#endif
+
 #define BOARD_NAME "Mega 2560"
 
  // Define step pulse output pins.
@@ -46,16 +50,16 @@
 #define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
 
 // Define stepper driver enable/disable output pin(s).
-#define X_DISABLE_PORT      PIOB
-#define X_DISABLE_PIN       27  // Due Digital Pin 13
-#define X_DISABLE_BIT       (1<<X_DISABLE_PIN)
+#define X_ENABLE_PORT       PIOB
+#define X_ENABLE_PIN        27  // Due Digital Pin 13
+#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
 /*
-#define Y_DISABLE_PORT      PIOA
-#define Y_DISABLE_PIN       23
-#define Y_DISABLE_BIT       (1<<Y_DISABLE_PIN)
-#define Z_DISABLE_PORT      PIOB
-#define Z_DISABLE_PIN       17
-#define Z_DISABLE_BIT       (1<<Z_DISABLE_PIN)
+#define Y_ENABLE_PORT      PIOA
+#define Y_ENABLE_PIN       23
+#define Y_ENABLE_BIT       (1<<Y_ENABLE_PIN)
+#define Z_ENABLE_PORT      PIOB
+#define Z_ENABLE_PIN       17
+#define Z_ENABLE_BIT       (1<<Z_ENABLE_PIN)
 */
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PORT        PIOC

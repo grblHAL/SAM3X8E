@@ -19,6 +19,12 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if N_ABC_MOTORS
+#error "Axis configuration is not supported!"
+#endif
+
+//#define HAS_IOPORTS
+
 // Define step pulse output pins.
 #define X_STEP_PORT         PIOA
 #define X_STEP_PIN          16
@@ -42,15 +48,15 @@
 #define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
 
 // Define stepper driver enable/disable output pin(s).
-#define X_DISABLE_PORT      PIOC
-#define X_DISABLE_PIN       6
-#define X_DISABLE_BIT       (1<<X_DISABLE_PIN)
-#define Y_DISABLE_PORT      PIOA
-#define Y_DISABLE_PIN       23
-#define Y_DISABLE_BIT       (1<<Y_DISABLE_PIN)
-#define Z_DISABLE_PORT      PIOB
-#define Z_DISABLE_PIN       17
-#define Z_DISABLE_BIT       (1<<Z_DISABLE_PIN)
+#define X_ENABLE_PORT       PIOC
+#define X_ENABLE_PIN        6
+#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
+#define Y_ENABLE_PORT       PIOA
+#define Y_ENABLE_PIN        23
+#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
+#define Z_ENABLE_PORT       PIOB
+#define Z_ENABLE_PIN        17
+#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PORT        PIOB // C28
@@ -120,6 +126,15 @@
 #define SD_CD_PORT          PIOA
 #define SD_CD_PIN           30
 #define SD_CD_BIT           (1<<SD_CD_PIN)
+#endif
+
+#ifdef HAS_IOPORTS
+#define AUXOUTPUT0_PORT     PIOA
+#define AUXOUTPUT0_PIN      14
+#define AUXOUTPUT1_PORT     PIOD
+#define AUXOUTPUT1_PIN      0
+#define AUXOUTPUT2_PORT     PIOD
+#define AUXOUTPUT2_PIN      2
 #endif
 
 /**/

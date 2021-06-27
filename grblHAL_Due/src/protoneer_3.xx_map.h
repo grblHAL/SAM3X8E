@@ -19,6 +19,10 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if N_ABC_MOTORS
+#error "Axis configuration is not supported!"
+#endif
+
 #define BOARD_NAME "Protoneer v3"
 
 // Define step pulse output pins.
@@ -44,9 +48,9 @@
 #define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
 
 // Define stepper driver enable/disable output pin(s).
-#define X_DISABLE_PORT      PIOC
-#define X_DISABLE_PIN       22
-#define X_DISABLE_BIT       (1<<X_DISABLE_PIN)
+#define X_ENABLE_PORT       PIOC
+#define X_ENABLE_PIN        22
+#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PORT        PIOC // C28

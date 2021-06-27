@@ -21,20 +21,12 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BOARD_NAME "cmcgrath v3"
-
-// Default pin assignments allow only one axis to be ganged or auto squared.
-// A axis pin numbers are used for the ganged/auto squared axis.
-// Set to 1 to enable, 0 to disable.
-#if N_AXIS <= 3
-#define X_GANGED        0
-#define X_AUTO_SQUARE   0
-#define Y_GANGED        0
-#define Y_AUTO_SQUARE   0
-#define Z_GANGED        0
-#define Z_AUTO_SQUARE   0
+#if N_ABC_MOTORS > 1
+#error "Axis configuration is not supported!"
 #endif
-//
+
+#define BOARD_NAME "cmcgrath v3"
+//#define HAS_IOPORTS
 
 #define X_STEP_PORT         PIOB
 #define X_STEP_PIN          25  // Due Digital Pin 2
@@ -42,26 +34,19 @@
 #define X_DIRECTION_PORT    PIOC
 #define X_DIRECTION_PIN     25  // Due Digital Pin 5
 #define X_DIRECTION_BIT     (1<<X_DIRECTION_PIN)
-#define X_DISABLE_PORT      PIOB
-#define X_DISABLE_PIN       26  // Due Digital Pin 22
-#define X_DISABLE_BIT       (1<<X_DISABLE_PIN)
+#define X_ENABLE_PORT       PIOB
+#define X_ENABLE_PIN        26  // Due Digital Pin 22
+#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
 #define X_LIMIT_PORT        PIOD
 #define X_LIMIT_PIN         4   // Due Digital Pin 14
 #define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
+#if X_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOD
+#define M3_LIMIT_PIN        5   // Due Digital Pin 17
+#else
 #define X_LIMIT_PORT_MAX    PIOD
 #define X_LIMIT_PIN_MAX     5   // Due Digital Pin 15
 #define X_LIMIT_BIT_MAX     (1<<X_LIMIT_PIN_MAX)
-
-#if X_GANGED || X_AUTO_SQUARE
-#define X2_STEP_PORT        PIOA
-#define X2_STEP_PIN         7   // Due Digital Pin 31
-#define X2_STEP_BIT         (1<<X2_STEP_PIN)
-#define X2_DIRECTION_PORT   PIOD
-#define X2_DIRECTION_PIN    10  // Due Digital Pin 32
-#define X2_DIRECTION_BIT    (1<<X2_DIRECTION_PIN)
-#define X2_DISABLE_PORT     PIOC
-#define X2_DISABLE_PIN      1   // Due Digital Pin 33
-#define X2_DISABLE_BIT      (1<<X2_DISABLE_PIN)
 #endif
 
 #define Y_STEP_PORT         PIOC
@@ -70,26 +55,19 @@
 #define Y_DIRECTION_PORT    PIOC
 #define Y_DIRECTION_PIN     24  // Due Digital Pin 6
 #define Y_DIRECTION_BIT     (1<<Y_DIRECTION_PIN)
-#define Y_DISABLE_PORT      PIOD
-#define Y_DISABLE_PIN       0   // Due Digital Pin 25
-#define Y_DISABLE_BIT       (1<<Y_DISABLE_PIN)
+#define Y_ENABLE_PORT       PIOD
+#define Y_ENABLE_PIN        0   // Due Digital Pin 25
+#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
 #define Y_LIMIT_PORT        PIOA
 #define Y_LIMIT_PIN         13  // Due Digital Pin 16
 #define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
+#if Y_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOA
+#define M3_LIMIT_PIN        12  // Due Digital Pin 17
+#else
 #define Y_LIMIT_PORT_MAX    PIOA
 #define Y_LIMIT_PIN_MAX     12  // Due Digital Pin 17
 #define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
-
-#if Y_GANGED || Y_AUTO_SQUARE
-#define Y2_STEP_PORT        PIOA
-#define Y2_STEP_PIN         7   // Due Digital Pin 31
-#define Y2_STEP_BIT         (1<<Y2_STEP_PIN)
-#define Y2_DIRECTION_PORT   PIOD
-#define Y2_DIRECTION_PIN    10  // Due Digital Pin 32
-#define Y2_DIRECTION_BIT    (1<<Y2_DIRECTION_PIN)
-#define Y2_DISABLE_PORT     PIOC
-#define Y2_DISABLE_PIN      1   // Due Digital Pin 33
-#define Y2_DISABLE_BIT      (1<<Y2_DISABLE_PIN)
 #endif
 
 #define Z_STEP_PORT         PIOC
@@ -98,38 +76,30 @@
 #define Z_DIRECTION_PORT    PIOC
 #define Z_DIRECTION_PIN     23  // Due Digital Pin 7
 #define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
-#define Z_DISABLE_PORT      PIOD
-#define Z_DISABLE_PIN       3   // Due Digital Pin 28
-#define Z_DISABLE_BIT       (1<<Z_DISABLE_PIN)
+#define Z_ENABLE_PORT       PIOD
+#define Z_ENABLE_PIN        3   // Due Digital Pin 28
+#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
 #define Z_LIMIT_PORT        PIOA
 #define Z_LIMIT_PIN         11  // Due Digital Pin 18
 #define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
+#if Z_AUTO_SQUARE
+#define M3_LIMIT_PORT       PIOA
+#define M3_LIMIT_PIN        10  // Due Digital Pin 19
+#else
 #define Z_LIMIT_PORT_MAX    PIOA
 #define Z_LIMIT_PIN_MAX     10  // Due Digital Pin 19
 #define Z_LIMIT_BIT_MAX     (1<<Z_LIMIT_PIN_MAX)
-
-#if Z_GANGED || Z_AUTO_SQUARE
-#define Z2_STEP_PORT        PIOA
-#define Z2_STEP_PIN         7   // Due Digital Pin 31
-#define Z2_STEP_BIT         (1<<Z2_STEP_PIN)
-#define Z2_DIRECTION_PORT   PIOD
-#define Z2_DIRECTION_PIN    10  // Due Digital Pin 32
-#define Z2_DIRECTION_BIT    (1<<Z2_DIRECTION_PIN)
-#define Z2_DISABLE_PORT     PIOC
-#define Z2_DISABLE_PIN      1   // Due Digital Pin 33
-#define Z2_DISABLE_BIT      (1<<Z2_DISABLE_PIN)
 #endif
 
-#ifdef A_AXIS
-#define A_STEP_PORT         PIOA
-#define A_STEP_PIN          7   // Due Digital Pin 31
-#define A_STEP_BIT          (1<<A_STEP_PIN)
-#define A_DIRECTION_PORT    PIOD
-#define A_DIRECTION_PIN     10  // Due Digital Pin 32
-#define A_DIRECTION_BIT     (1<<A_DIRECTION_PIN)
-#define A_DISABLE_PORT      PIOC
-#define A_DISABLE_PIN       1   // Due Digital Pin 33
-#define A_DISABLE_BIT       (1<<A_DISABLE_PIN)
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PORT        PIOA
+#define M3_STEP_PIN         7   // Due Digital Pin 31
+#define M3_DIRECTION_PORT   PIOD
+#define M3_DIRECTION_PIN    10  // Due Digital Pin 32
+#define M3_ENABLE_PORT      PIOC
+#define M3_ENABLE_PIN       1   // Due Digital Pin 33
 #endif
 
 // Define spindle enable and spindle direction output pins.
@@ -165,5 +135,14 @@
 #define PROBE_PORT          PIOA
 #define PROBE_PIN           2   // DUE Analog Pin 7
 #define PROBE_BIT           (1<<PROBE_PIN)
+
+#ifdef HAS_IOPORTS
+#define AUXOUTPUT0_PORT     PIOB
+#define AUXOUTPUT0_PIN      21
+#define AUXOUTPUT1_PORT     PIOC
+#define AUXOUTPUT1_PIN      13
+#define AUXOUTPUT2_PORT     PIOC
+#define AUXOUTPUT2_PIN      15
+#endif
 
 /**/
