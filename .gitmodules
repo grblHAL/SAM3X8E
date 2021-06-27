@@ -10,3 +10,6 @@
 [submodule "grblHAL_Due/src/spindle"]
 	path = grblHAL_Due/src/spindle
 	url = https://github.com/grblHAL/Plugins_spindle
+[submodule "grblHAL_Due/src/bluetooth"]
+	path = grblHAL_Due/src/bluetooth
+	url = https://github.com/grblHAL/Plugins_Bluetooth
