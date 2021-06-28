@@ -44,25 +44,27 @@ static stream_rx_buffer_t usb_rxbuffer;
 //
 // Returns number of characters in serial input buffer
 //
-uint16_t usb_serialRxCount (void)
+static uint16_t usb_serialRxCount (void)
 {
     uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
+
     return (uint16_t)BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
 //
 // Returns number of free characters in serial input buffer
 //
-uint16_t usb_serialRxFree (void)
+static uint16_t usb_serialRxFree (void)
 {
     uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
+
     return (uint16_t)((RX_BUFFER_SIZE - 1) - BUFCOUNT(head, tail, RX_BUFFER_SIZE));
 }
 
 //
 // Flushes the serial input buffer including pending in the USB buffer
 //
-void usb_serialRxFlush (void)
+static void usb_serialRxFlush (void)
 {
     while(SerialUSB.read() != -1);
     usb_rxbuffer.head = usb_rxbuffer.tail = 0;
@@ -71,7 +73,7 @@ void usb_serialRxFlush (void)
 //
 // Flushes and adds a CAN character to the serial input buffer
 //
-void usb_serialRxCancel (void)
+static void usb_serialRxCancel (void)
 {
     usb_rxbuffer.data[usb_rxbuffer.head] = CMD_RESET;
     usb_rxbuffer.tail = usb_rxbuffer.head;
@@ -81,7 +83,7 @@ void usb_serialRxCancel (void)
 //
 // Writes a character to the serial output stream
 //
-bool usb_serialPutC (const char c)
+static bool usb_serialPutC (const char c)
 {
     SerialUSB.write(c);
 
@@ -93,7 +95,7 @@ bool usb_serialPutC (const char c)
 // Buffers locally up to 40 characters or until the string is terminated with a ASCII_LF character.
 // NOTE: grbl always sends ASCII_LF terminated strings!
 //
-void usb_serialWriteS (const char *s)
+static void usb_serialWriteS (const char *s)
 {
     size_t length = strlen(s);
 
@@ -135,7 +137,7 @@ void usb_serialWriteS (const char *s)
 //
 // Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
 //
-void usb_serialWriteLn (const char *s)
+static void usb_serialWriteLn (const char *s)
 {
     usb_serialWriteS(s);
     usb_serialWriteS(ASCII_EOL);
@@ -144,7 +146,7 @@ void usb_serialWriteLn (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-void usb_serialWrite (const char *s, uint16_t length)
+static void usb_serialWrite (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
@@ -155,7 +157,7 @@ void usb_serialWrite (const char *s, uint16_t length)
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t usb_serialGetC (void)
+static int16_t usb_serialGetC (void)
 {
     uint16_t bptr = usb_rxbuffer.tail;
 
@@ -167,24 +169,8 @@ int16_t usb_serialGetC (void)
 
     return (int16_t)data;
 }
-/*
-typedef struct {
-    stream_type_t type;                                     //!< Type of stream.
-    bool connected;                                         //!< Set to true by the driver if stream is connected. _Optional._ Under consideration.
-    get_rx_buffer_available_ptr get_rx_buffer_available;    //!< Handler for getting number of characters in the input buffer.
-    stream_write_ptr write;                                 //!< Handler for writing string to current output stream only.
-    stream_write_ptr write_all;                             //!< Handler for writing string to all active output streams.
-    stream_write_char_ptr write_char;                       //!< Handler for writing a single character to current stream only.
-    stream_read_ptr read;                                   //!< Handler for reading a single character from the input stream.
-    reset_read_buffer_ptr reset_read_buffer;                //!< Handler for flushing the input buffer.
-    cancel_read_buffer_ptr cancel_read_buffer;              //!< Handler for flushing the input buffer and inserting an #ASCII_CAN character.
-    suspend_read_ptr suspend_read;                          //!< Optional handler for saving away and restoring the current input buffer.
-    set_baud_rate_ptr set_baud_rate;                        //!< Optional handler for setting the stream baud rate.
-    enqueue_realtime_command_ptr enqueue_realtime_command;  //!< Handler for extracting real-time commands from the input stream. _Set by the core at startup._
-} io_stream_t;
 
-*/
-bool usb_serialSuspendInput (bool suspend)
+static bool usb_serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&usb_rxbuffer, suspend);
 }

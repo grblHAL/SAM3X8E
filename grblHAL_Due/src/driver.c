@@ -1382,7 +1382,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210626";
+	hal.driver_version = "210627";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1453,7 +1453,7 @@ bool driver_init (void)
     serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
 #else
-    serial_stream = serialInit();
+    serial_stream = serialInit(115200);
 #endif
 
     hal.stream_select = selectStream;
@@ -1529,7 +1529,7 @@ bool driver_init (void)
     bluetooth_init(serial2Init(115200));
  #else
   #if USB_SERIAL_CDC
-    bluetooth_init(serialInit());
+    bluetooth_init(serialInit(115200));
   #else
     bluetooth_init(serial_stream);
   #endif

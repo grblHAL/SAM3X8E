@@ -134,36 +134,9 @@
 extern "C" {
 #endif
 
-const io_stream_t *serialInit(void);
-bool serialSetBaudRate (uint32_t baud_rate);
-int16_t serialGetC(void);
-bool serialPutC(const char c);
-void serialWriteS(const char *s);
-void serialWriteLn(const char *s);
-void serialWrite(const char *s, uint16_t length);
-bool serialSuspendInput (bool suspend);
-
-uint16_t serialTxCount(void);
-uint16_t serialRxCount(void);
-uint16_t serialRxFree(void);
-void serialRxFlush(void);
-void serialRxCancel(void);
-
+const io_stream_t *serialInit(uint32_t baud_rate);
 #ifdef SERIAL2_DEVICE
 const io_stream_t *serial2Init(uint32_t baud_rate);
-int16_t serial2GetC(void);
-bool serial2PutC(const char c);
-void serial2WriteS(const char *s);
-void serial2WriteLn(const char *s);
-void serial2Write(const char *s, uint16_t length);
-bool serial2SuspendInput (bool suspend);
-
-uint16_t serial2TxCount(void);
-void serial2TxFlush (void);
-uint16_t serial2RxCount(void);
-uint16_t serial2RxFree(void);
-void serial2RxFlush(void);
-void serial2RxCancel(void);
 #endif
 
 #ifdef __cplusplus

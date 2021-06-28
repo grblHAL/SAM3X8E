@@ -27,11 +27,11 @@ static stream_tx_buffer_t txbuffer = {0};
 static stream_rx_buffer_t rxbuffer = {0};
 
 static void SERIAL_IRQHandler (void);
-
+/*
 //
 // Returns number of characters in serial output buffer
 //
-uint16_t serialTxCount (void)
+static uint16_t serialTxCount (void)
 {
     uint16_t tail = txbuffer.tail;
 
@@ -45,17 +45,17 @@ uint16_t serialTxCount (void)
 //
 // Returns number of characters in serial input buffer
 //
-uint16_t serialRxCount (void)
+static uint16_t serialRxCount (void)
 {
     uint16_t tail = rxbuffer.tail, head = rxbuffer.head;
 
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
-
+*/
 //
 // Returns number of free characters in serial input buffer
 //
-uint16_t serialRxFree (void)
+static uint16_t serialRxFree (void)
 {
     unsigned int tail = rxbuffer.tail, head = rxbuffer.head;
 
@@ -65,7 +65,7 @@ uint16_t serialRxFree (void)
 //
 // Flushes the serial input buffer
 //
-void serialRxFlush (void)
+static void serialRxFlush (void)
 {
     rxbuffer.head = rxbuffer.tail = 0;
 }
@@ -73,7 +73,7 @@ void serialRxFlush (void)
 //
 // Flushes and adds a CAN character to the serial input buffer
 //
-void serialRxCancel (void)
+static void serialRxCancel (void)
 {
     rxbuffer.data[rxbuffer.head] = ASCII_CAN;
     rxbuffer.tail = rxbuffer.head;
@@ -100,7 +100,7 @@ static inline bool serialPutCNonBlocking (const char c)
 //
 // Writes a character to the serial output stream
 //
-bool serialPutC (const char c) {
+static bool serialPutC (const char c) {
 
     uint32_t next_head;
 
@@ -129,18 +129,18 @@ bool serialPutC (const char c) {
 //
 // Writes a null terminated string to the serial output stream, blocks if buffer full
 //
-void serialWriteS (const char *s)
+static void serialWriteS (const char *s)
 {
     char c, *ptr = (char *)s;
 
     while((c = *ptr++) != '\0')
         serialPutC(c);
 }
-
+/*
 //
 // Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
 //
-void serialWriteLn (const char *s)
+static void serialWriteLn (const char *s)
 {
     serialWriteS(s);
     serialWriteS(ASCII_EOL);
@@ -149,18 +149,18 @@ void serialWriteLn (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-void serialWrite (const char *s, uint16_t length)
+static void serialWrite (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
     while(length--)
         serialPutC(*ptr++);
 }
-
+*/
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t serialGetC (void)
+static int16_t serialGetC (void)
 {
     uint16_t bptr = rxbuffer.tail;
 
@@ -173,12 +173,12 @@ int16_t serialGetC (void)
     return (int16_t)data;
 }
 
-bool serialSuspendInput (bool suspend)
+static bool serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&rxbuffer, suspend);
 }
 
-bool serialSetBaudRate (uint32_t baud_rate)
+static bool serialSetBaudRate (uint32_t baud_rate)
 {
 #if SERIAL_DEVICE < 0
     SERIAL_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
@@ -203,7 +203,7 @@ bool serialSetBaudRate (uint32_t baud_rate)
     return true;
 }
 
-const io_stream_t *serialInit (void)
+const io_stream_t *serialInit (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
@@ -227,7 +227,7 @@ const io_stream_t *serialInit (void)
     SERIAL_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
 #endif
 
-    serialSetBaudRate(115200);
+    serialSetBaudRate(baud_rate);
 
     IRQRegister(SERIAL_IRQ, SERIAL_IRQHandler);
 
@@ -306,7 +306,7 @@ static void SERIAL2_IRQHandler (void);
 //
 // Returns number of characters in serial output buffer
 //
-uint16_t serial2TxCount (void)
+static uint16_t serial2TxCount (void)
 {
     uint16_t tail = tx2buffer.tail;
 
@@ -316,7 +316,7 @@ uint16_t serial2TxCount (void)
 //
 // Returns number of characters in serial input buffer
 //
-uint16_t serial2RxCount (void)
+static uint16_t serial2RxCount (void)
 {
     uint16_t tail = rx2buffer.tail, head = rx2buffer.head;
 
@@ -326,7 +326,7 @@ uint16_t serial2RxCount (void)
 //
 // Returns number of free characters in serial input buffer
 //
-uint16_t serial2RxFree (void)
+static uint16_t serial2RxFree (void)
 {
     unsigned int tail = rx2buffer.tail, head = rx2buffer.head;
 
@@ -336,7 +336,7 @@ uint16_t serial2RxFree (void)
 //
 // Flushes the serial input buffer
 //
-void serial2RxFlush (void)
+static void serial2RxFlush (void)
 {
     rx2buffer.tail = rx2buffer.head;
 }
@@ -344,7 +344,7 @@ void serial2RxFlush (void)
 //
 // Flushes and adds a CAN character to the serial input buffer
 //
-void serial2RxCancel (void)
+static void serial2RxCancel (void)
 {
     rx2buffer.data[rx2buffer.head] = ASCII_CAN;
     rx2buffer.tail = rx2buffer.head;
@@ -354,7 +354,7 @@ void serial2RxCancel (void)
 //
 // Flushes the serial output buffer
 //
-void serial2TxFlush (void)
+static void serial2TxFlush (void)
 {
     tx2buffer.tail = tx2buffer.head;
 }
@@ -376,7 +376,7 @@ static inline bool serial2PutCNonBlocking (const char c)
 //
 // Writes a character to the serial output stream
 //
-bool serial2PutC (const char c) {
+static bool serial2PutC (const char c) {
 
     uint32_t next_head;
 
@@ -405,7 +405,7 @@ bool serial2PutC (const char c) {
 //
 // Writes a null terminated string to the serial output stream, blocks if buffer full
 //
-void serial2WriteS (const char *s)
+static void serial2WriteS (const char *s)
 {
     char c, *ptr = (char *)s;
 
@@ -416,7 +416,7 @@ void serial2WriteS (const char *s)
 //
 // Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
 //
-void serial2WriteLn (const char *s)
+static void serial2WriteLn (const char *s)
 {
     serial2WriteS(s);
     serial2WriteS(ASCII_EOL);
@@ -425,7 +425,7 @@ void serial2WriteLn (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-void serial2Write (const char *s, uint16_t length)
+static void serial2Write (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
@@ -436,7 +436,7 @@ void serial2Write (const char *s, uint16_t length)
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t serial2GetC (void)
+static int16_t serial2GetC (void)
 {
     uint16_t bptr = rx2buffer.tail;
 
@@ -449,7 +449,7 @@ int16_t serial2GetC (void)
     return (int16_t)data;
 }
 
-bool serial2SetBaudRate (uint32_t baud_rate)
+static bool serial2SetBaudRate (uint32_t baud_rate)
 {
 #if SERIAL2_DEVICE < 0
     SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
@@ -476,18 +476,6 @@ bool serial2SetBaudRate (uint32_t baud_rate)
 
 const io_stream_t *serial2Init (uint32_t baud_rate)
 {
-    static const io_stream_t zstream = {
-        .type = StreamType_Serial,
-        .read = serial2GetC,
-        .write = serial2WriteS,
-        .write_char = serial2PutC,
-        .get_rx_buffer_free = serial2RxFree,
-        .reset_read_buffer = serial2RxFlush,
-        .cancel_read_buffer = serial2RxCancel,
-//        .suspend_read = serial2SuspendInput,
-        .set_baud_rate = serial2SetBaudRate
-    };
-
     static const io_stream_t stream = {
         .type = StreamType_Serial,
         .connected = true,
