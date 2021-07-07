@@ -41,10 +41,6 @@
 #include "eeprom/eeprom.h"
 #endif
 
-#if KEYPAD_ENABLE
-#include "keypad/keypad.h"
-#endif
-
 #if BLUETOOTH_ENABLE
 #include "bluetooth/bluetooth.h"
 #endif
@@ -239,10 +235,10 @@ static output_signal_t outputpin[] = {
 #endif
 #endif
 #ifdef COOLANT_FLOOD_PIN
-    { .id = Output_CoolantMist,     .port = COOLANT_FLOOD_PORT,         .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
+    { .id = Output_CoolantFlood,    .port = COOLANT_FLOOD_PORT,         .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
 #endif
 #ifdef COOLANT_MIST_PIN
-    { .id = Output_CoolantFlood,    .port = COOLANT_MIST_PORT,          .pin = COOLANT_MIST_PIN,        .group = PinGroup_Coolant },
+    { .id = Output_CoolantMist,     .port = COOLANT_MIST_PORT,          .pin = COOLANT_MIST_PIN,        .group = PinGroup_Coolant },
 #endif
 #ifdef SD_CS_PORT
     { .id = Output_SdCardCS,        .port = SD_CS_PORT,                 .pin = SD_CS_PIN,               .group = PinGroup_SdCard },
@@ -1073,7 +1069,7 @@ void settings_changed (settings_t *settings)
                 if(input->group == PinGroup_AuxInput) {
                     pullup = true;
                     input->cap.pull_mode = (PullMode_Up|PullMode_Down);
-                    input->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling);
+                    input->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling|IRQ_Mode_Change);
                 }
 
                 PIO_Mode(input->port, input->bit, INPUT);
@@ -1148,6 +1144,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.function = inputpin[i].id;
         pin.group = inputpin[i].group;
         pin.port = low_level ? (void *)inputpin[i].port : (void *)port2char(inputpin[i].port);
+        pin.description = inputpin[i].description;
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
 
         pin_info(&pin);
@@ -1161,6 +1158,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.function = outputpin[i].id;
         pin.group = outputpin[i].group;
         pin.port = low_level ? (void *)outputpin[i].port : (void *)port2char(outputpin[i].port);
+        pin.description = outputpin[i].description;
 
         pin_info(&pin);
     };
@@ -1382,7 +1380,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210627";
+	hal.driver_version = "210703";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1512,14 +1510,6 @@ bool driver_init (void)
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
-#if TRINAMIC_ENABLE == 2130
-    trinamic_init();
-#endif
-
-#if KEYPAD_ENABLE
-    keypad_init();
-#endif
-
 #if SPINDLE_HUANYANG
     huanyang_init(modbus_init(serial2Init(19200), NULL));
 #endif
@@ -1536,7 +1526,7 @@ bool driver_init (void)
  #endif
 #endif
 
-    my_plugin_init();
+#include "grbl/plugins_init.h"
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
