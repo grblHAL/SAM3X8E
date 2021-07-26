@@ -175,15 +175,15 @@ static output_signal_t outputpin[] = {
 #endif
     { .id = Output_DirX,            .port = X_DIRECTION_PORT,           .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #ifdef X2_DIRECTION_PIN
-    { .id = Output_DirX,            .port = X2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirX_2,          .port = X2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
     { .id = Output_DirY,            .port = Y_DIRECTION_PORT,           .pin = Y_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #ifdef Y2_DIRECTION_PIN2
-    { .id = Output_DirX,            .port = Y_DIRECTION_PORT,           .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirY_2,          .port = Y2_DIRECTION_PORT,          .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
     { .id = Output_DirZ,            .port = Z_DIRECTION_PORT,           .pin = Z_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #ifdef Z2_DIRECTION_PIN
-    { .id = Output_DirX,            .port = Z2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirZ_2,          .port = Z2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
 #ifdef A_AXIS
     { .id = Output_DirA,            .port = A_DIRECTION_PORT,           .pin = A_DIRECTION_PIN,         .group = PinGroup_StepperDir },
@@ -305,8 +305,7 @@ static bool selectStream (const io_stream_t *stream)
     if(!hal.stream.write_all)
         hal.stream.write_all = hal.stream.write;
 
-    if(!hal.stream.enqueue_realtime_command)
-        hal.stream.enqueue_realtime_command = protocol_enqueue_realtime_command;
+    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
 
     active_stream = hal.stream.type;
 
@@ -1380,7 +1379,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210703";
+	hal.driver_version = "210716";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
