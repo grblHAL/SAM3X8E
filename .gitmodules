@@ -13,6 +13,6 @@
 [submodule "grblHAL_Due/src/bluetooth"]
 	path = grblHAL_Due/src/bluetooth
 	url = https://github.com/grblHAL/Plugins_Bluetooth
-[submodule "grblHAL_Due/grblHAL_Due\\src\\openpnp"]
-	path = grblHAL_Due/grblHAL_Due\\src\\openpnp
+[submodule "grblHAL_Due/src/openpnp"]
+	path = grblHAL_Due/src/openpnp
 	url = https://github.com/grblHAL/Plugin_OpenPNP
