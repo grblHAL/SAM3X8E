@@ -110,8 +110,13 @@ void IRQUnRegister(int32_t IRQnum);
 
 #if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
 
+#ifndef I2C_ENABLE
 #define I2C_ENABLE 1
+#endif
+
 // Define I2C port/pins
+
+#if I2C_ENABLE == 1
 #define I2C_PERIPH  TWI0
 #define I2C_ID      ID_TWI0
 #define I2C_IRQ     TWI0_IRQn
@@ -120,6 +125,18 @@ void IRQUnRegister(int32_t IRQnum);
 #define I2C_SCL_PIN 18  // Arduino Due SCL1 pin
 #define I2C_SDA_BIT (1<<I2C_SDA_PIN)
 #define I2C_SCL_BIT (1<<I2C_SCL_PIN)
+#endif
+
+#if I2C_ENABLE == 2
+#define I2C_PERIPH  TWI1
+#define I2C_ID      ID_TWI1
+#define I2C_IRQ     TWI1_IRQn
+#define I2C_PORT    PIOB
+#define I2C_SDA_PIN 12  // Arduino Due SDA0-3 pin
+#define I2C_SCL_PIN 13  // Arduino Due SCL0-3 pin
+#define I2C_SDA_BIT (1<<I2C_SDA_PIN)
+#define I2C_SCL_BIT (1<<I2C_SCL_PIN)
+#endif
 
 #define I2C_CLOCK 100000
 #else

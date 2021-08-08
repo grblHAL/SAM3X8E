@@ -52,6 +52,7 @@ typedef struct {
     uint8_t addr;
     uint16_t count;
     uint8_t *data;
+    uint8_t regaddr[2];
 #if KEYPAD_ENABLE
     keycode_callback_ptr keycode_callback;
 #endif
@@ -74,10 +75,7 @@ void i2c_init (void)
         pmc_enable_periph_clk(I2C_PERIPH == TWI0 ? ID_PIOA : ID_PIOB);
 
         I2C_PORT->PIO_PDR = I2C_SDA_BIT|I2C_SCL_BIT;
-        if(I2C_PERIPH == TWI0)
-            I2C_PORT->PIO_ABSR &= ~(I2C_SDA_BIT|I2C_SCL_BIT);
-        else
-            I2C_PORT->PIO_ABSR |= (I2C_SDA_BIT|I2C_SCL_BIT);
+        I2C_PORT->PIO_ABSR &= ~(I2C_SDA_BIT|I2C_SCL_BIT);
 
         I2C_PERIPH->TWI_CR = TWI_CR_SWRST;
         I2C_PERIPH->TWI_RHR;
@@ -115,9 +113,9 @@ uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
 
 void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 {
-    i2c.count = bytes;
+    i2c.count = bytes ? bytes - 1 : 0;
     i2c.data  = buf ? buf : i2c.buffer;
-    i2c.state = bytes == 0 ? I2CState_AwaitCompletion : (bytes == 1 ? I2CState_SendLast : I2CState_SendNext);
+    i2c.state = i2c.count == 0 ? I2CState_AwaitCompletion : (i2c.count == 1 ? I2CState_SendLast : I2CState_SendNext);
 
     I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr);
     I2C_PERIPH->TWI_THR = *i2c.data++;
@@ -127,7 +125,7 @@ void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
         while(i2cIsBusy);
 }
 
-uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
 {
     while(i2cIsBusy);
 
@@ -135,8 +133,13 @@ uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool 
     i2c.data  = buf ? buf : i2c.buffer;
     i2c.state = bytes == 1 ? I2CState_ReceiveLast : (bytes == 2 ? I2CState_ReceiveNextToLast : I2CState_ReceiveNext);
 
-    I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr)|TWI_MMR_MREAD|TWI_MMR_IADRSZ_1_BYTE;
-    I2C_PERIPH->TWI_IADR = *i2c.data;
+    if(abytes == 1) {
+        I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr)|TWI_MMR_MREAD|TWI_MMR_IADRSZ_1_BYTE;
+        I2C_PERIPH->TWI_IADR = i2c.regaddr[0];
+    } else {
+        I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr)|TWI_MMR_MREAD|TWI_MMR_IADRSZ_2_BYTE;
+        I2C_PERIPH->TWI_IADR = (i2c.regaddr[1] << 8) | i2c.regaddr[0];
+    }
     I2C_PERIPH->TWI_CR = bytes == 1 ? TWI_CR_START|TWI_CR_STOP : TWI_CR_START; // Start condition + stop condition if reading one byte
     I2C_PERIPH->TWI_IER = TWI_IER_RXRDY;
 
@@ -150,17 +153,27 @@ uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool 
 
 nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
 {
-    static uint8_t txbuf[34];
+    static uint8_t txbuf[66];
 
     while(i2cIsBusy);
 
     if(read) {
-        transfer->data[0] = transfer->word_addr; // !!
-        I2C_ReadRegister(transfer->address, transfer->data, transfer->count, true);
+        if(transfer->word_addr_bytes == 1)
+            i2c.regaddr[0] = transfer->word_addr;
+        else {
+            i2c.regaddr[0] = transfer->word_addr & 0xFF;
+            i2c.regaddr[1] = transfer->word_addr >> 8;
+        }
+        I2C_ReadRegister(transfer->address, transfer->data, transfer->word_addr_bytes, transfer->count, true);
     } else {
-        memcpy(&txbuf[1], transfer->data, transfer->count);
-        txbuf[0] = transfer->word_addr;
-        I2C_Send(transfer->address, txbuf, transfer->count, true);
+        memcpy(&txbuf[transfer->word_addr_bytes], transfer->data, transfer->count);
+        if(transfer->word_addr_bytes == 1)
+            txbuf[0] = transfer->word_addr;
+        else {
+            txbuf[0] = transfer->word_addr >> 8;
+            txbuf[1] = transfer->word_addr & 0xFF;
+        }
+        I2C_Send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
 #if !EEPROM_IS_FRAM
         hal.delay_ms(5, NULL);
 #endif

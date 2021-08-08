@@ -45,6 +45,14 @@
 #include "bluetooth/bluetooth.h"
 #endif
 
+#if PLASMA_ENABLE
+#include "plasma/thc.h"
+#endif
+
+#if I2C_ENABLE
+#include "i2c.h"
+#endif
+
 #define DEBOUNCE_QUEUE 8 // Must be a power of 2
 
 #ifndef OUTPUT
@@ -312,6 +320,20 @@ static bool selectStream (const io_stream_t *stream)
     return stream->type == hal.stream.type;
 }
 
+#if PLASMA_ENABLE
+
+static axes_signals_t pulse_output = {0};
+
+void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
+{
+    pulse_output = step_outbits;
+    dir_outbits.value ^= settings.steppers.dir_invert.mask;
+
+    BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_outbits.z;
+}
+
+#endif
+
 // Set stepper pulse output pins
 
 #ifdef SQUARING_ENABLED
@@ -319,6 +341,11 @@ static bool selectStream (const io_stream_t *stream)
 inline static __attribute__((always_inline)) void set_step_outputs (axes_signals_t step_outbits_1)
 {
     axes_signals_t step_outbits_2;
+
+#if PLASMA_ENABLE
+    step_outbits_1.value |= pulse_output.value;
+    pulse_output.value = 0;
+#endif
 
     step_outbits_2.mask = (step_outbits_1.mask & motors_2.mask) ^ settings.steppers.step_invert.mask;
     step_outbits_1.mask = (step_outbits_1.mask & motors_1.mask) ^ settings.steppers.step_invert.mask;
@@ -377,6 +404,11 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 
 inline static void __attribute__((always_inline)) set_step_outputs (axes_signals_t step_outbits)
 {
+#if PLASMA_ENABLE
+    step_outbits.value |= pulse_output.value;
+    pulse_output.value = 0;
+#endif
+
     step_outbits.value ^= settings.steppers.step_invert.mask;
 
     BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_outbits.x;
@@ -1379,7 +1411,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210716";
+	hal.driver_version = "210803";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1423,7 +1455,21 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
+#if USB_SERIAL_CDC
+    serial_stream = usb_serialInit();
+    grbl.on_execute_realtime = execute_realtime;
+#else
+    serial_stream = serialInit(115200);
+#endif
+
+    hal.stream_select = selectStream;
+    hal.stream_select(serial_stream);
+
+#ifdef DEBUGOUT
+    hal.debug_out = debug_out;
+#endif
+
+#if I2C_ENABLE
     i2c_init();
 #endif
 
@@ -1445,20 +1491,6 @@ bool driver_init (void)
     hal.set_value_atomic = valueSetAtomic;
     hal.get_elapsed_ticks = millis;
     hal.enumerate_pins = enumeratePins;
-
-#if USB_SERIAL_CDC
-    serial_stream = usb_serialInit();
-    grbl.on_execute_realtime = execute_realtime;
-#else
-    serial_stream = serialInit(115200);
-#endif
-
-    hal.stream_select = selectStream;
-    hal.stream_select(serial_stream);
-
-#ifdef DEBUGOUT
-    hal.debug_out = debug_out;
-#endif
 
  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
@@ -1523,6 +1555,11 @@ bool driver_init (void)
     bluetooth_init(serial_stream);
   #endif
  #endif
+#endif
+
+#if PLASMA_ENABLE
+    hal.stepper.output_step = stepperOutputStep;
+    plasma_init();
 #endif
 
 #include "grbl/plugins_init.h"
