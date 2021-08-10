@@ -1411,7 +1411,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210803";
+	hal.driver_version = "210810";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1715,12 +1715,7 @@ static void PIOD_IRQHandler (void)
 // Interrupt handler for 1 ms interval timer
 static void SysTick_IRQHandler (void)
 {
-
-#if USB_SERIAL_CDC || SDCARD_ENABLE || MODBUS_ENABLE
-
-#if USB_SERIAL_CDC
-    SysTick_Handler(); // SerialUSB needs the Arduino SysTick handler running
-#endif
+    SysTick_Handler();
 
 #if SDCARD_ENABLE
     static uint32_t fatfs_ticks = 10;
@@ -1730,23 +1725,10 @@ static void SysTick_IRQHandler (void)
     }
 #endif
 
-#if MODBUS_ENABLE
-    modbus_poll();
-#endif
-
     if(delay_ms.ms && !(--delay_ms.ms)) {
         if(delay_ms.callback) {
             delay_ms.callback();
             delay_ms.callback = NULL;
         }
     }
-#else
-    if(!(--delay_ms.ms)) {
-        SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-        if(delay_ms.callback) {
-            delay_ms.callback();
-            delay_ms.callback = NULL;
-        }
-    }
-#endif
 }
