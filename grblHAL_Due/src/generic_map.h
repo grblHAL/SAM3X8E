@@ -26,115 +26,89 @@
 //#define HAS_IOPORTS
 
 // Define step pulse output pins.
-#define X_STEP_PORT         PIOA
-#define X_STEP_PIN          16
-#define X_STEP_BIT          (1<<X_STEP_PIN)
-#define Y_STEP_PORT         PIOA
-#define Y_STEP_PIN          3
-#define Y_STEP_BIT          (1<<Y_STEP_PIN)
-#define Z_STEP_PORT         PIOC
-#define Z_STEP_PIN          17
-#define Z_STEP_BIT          (1<<Z_STEP_PIN)
+#define X_STEP_PORT             PIOA
+#define X_STEP_PIN              16
+#define Y_STEP_PORT             PIOA
+#define Y_STEP_PIN              3
+#define Z_STEP_PORT             PIOC
+#define Z_STEP_PIN              17
 
 // Define step direction output pins.
-#define X_DIRECTION_PORT    PIOA
-#define X_DIRECTION_PIN     24
-#define X_DIRECTION_BIT     (1<<X_DIRECTION_PIN)
-#define Y_DIRECTION_PORT    PIOA
-#define Y_DIRECTION_PIN     2
-#define Y_DIRECTION_BIT     (1<<Y_DIRECTION_PIN)
-#define Z_DIRECTION_PORT    PIOC
-#define Z_DIRECTION_PIN     15
-#define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
+#define X_DIRECTION_PORT        PIOA
+#define X_DIRECTION_PIN         24
+#define Y_DIRECTION_PORT        PIOA
+#define Y_DIRECTION_PIN         2
+#define Z_DIRECTION_PORT        PIOC
+#define Z_DIRECTION_PIN         15
 
 // Define stepper driver enable/disable output pin(s).
-#define X_ENABLE_PORT       PIOC
-#define X_ENABLE_PIN        6
-#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
-#define Y_ENABLE_PORT       PIOA
-#define Y_ENABLE_PIN        23
-#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
-#define Z_ENABLE_PORT       PIOB
-#define Z_ENABLE_PIN        17
-#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
+#define X_ENABLE_PORT           PIOC
+#define X_ENABLE_PIN            6
+#define Y_ENABLE_PORT           PIOA
+#define Y_ENABLE_PIN            23
+#define Z_ENABLE_PORT           PIOB
+#define Z_ENABLE_PIN            17
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PORT        PIOB // C28
-#define X_LIMIT_PIN         25
-#define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
-#define Y_LIMIT_PORT        PIOD // D14
-#define Y_LIMIT_PIN         25
-#define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
-#define Z_LIMIT_PORT        PIOC // A11
-#define Z_LIMIT_PIN         24
-#define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
+#define X_LIMIT_PORT            PIOB // C28
+#define X_LIMIT_PIN             25
+
+#define Y_LIMIT_PORT            PIOD // D14
+#define Y_LIMIT_PIN             25
+#define Z_LIMIT_PORT            PIOC // A11
+#define Z_LIMIT_PIN             24
 
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PORT     PIOA
 #define SPINDLE_ENABLE_PIN      15
-#define SPINDLE_ENABLE_BIT      (1<<SPINDLE_ENABLE_PIN)
 #define SPINDLE_DIRECTION_PORT  PIOD
 #define SPINDLE_DIRECTION_PIN   3
-#define SPINDLE_DIRECTION_BIT   (1<<SPINDLE_DIRECTION_PIN)
 
 // Start of PWM & Stepper Enabled Spindle
-#define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[0])
-#define SPINDLE_PWM_PORT    PIOC
-#define SPINDLE_PWM_PIN     25  // TIOA6
-#define SPINDLE_PWM_BIT     (1<<SPINDLE_PWM_PIN)
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
+#define SPINDLE_PWM_PORT        PIOC
+#define SPINDLE_PWM_PIN         25  // TIOA6
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOC
-#define COOLANT_FLOOD_PIN   5
-#define COOLANT_FLOOD_BIT   (1<<COOLANT_FLOOD_PIN)
-#define COOLANT_MIST_PORT   PIOC
-#define COOLANT_MIST_PIN    3
-#define COOLANT_MIST_BIT    (1<<COOLANT_MIST_PIN)
+#define COOLANT_FLOOD_PORT      PIOC
+#define COOLANT_FLOOD_PIN       5
+#define COOLANT_MIST_PORT       PIOC
+#define COOLANT_MIST_PIN        3
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOC
-#define RESET_PIN           12
-#define RESET_BIT           (1<<RESET_PIN)
-
-#define FEED_HOLD_PORT      PIOC
-#define FEED_HOLD_PIN       14
-#define FEED_HOLD_BIT       (1<<FEED_HOLD_PIN)
-
-#define CYCLE_START_PORT    PIOC
-#define CYCLE_START_PIN     16
-#define CYCLE_START_BIT     (1<<CYCLE_START_PIN)
-
-#ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-#define SAFETY_DOOR_PORT    PIOC
-#define SAFETY_DOOR_PIN     18
-#define SAFETY_DOOR_BIT     (1<<SAFETY_DOOR_PIN)
+#define RESET_PORT              PIOC
+#define RESET_PIN               12
+#define FEED_HOLD_PORT          PIOC
+#define FEED_HOLD_PIN           14
+#define CYCLE_START_PORT        PIOC
+#define CYCLE_START_PIN         16
+#if SAFETY_DOOR_ENABLE
+#define SAFETY_DOOR_PORT        PIOC
+#define SAFETY_DOOR_PIN         18
 #endif
 
 // Define probe switch input pin.
-#define PROBE_PORT          PIOC
-#define PROBE_PIN           13
-#define PROBE_BIT           (1<<PROBE_PIN)
+#define PROBE_PORT              PIOC
+#define PROBE_PIN               13
 
 #if KEYPAD_ENABLE
-#define KEYPAD_PORT         PIOA
-#define KEYPAD_PIN          5
-#define KEYPAD_BIT          (1<<KEYPAD_PIN)
+#define KEYPAD_PORT             PIOA
+#define KEYPAD_PIN              5
 #endif
 
 #if SDCARD_ENABLE
 // Define SD card detect pin.
-#define SD_CD_PORT          PIOA
-#define SD_CD_PIN           30
-#define SD_CD_BIT           (1<<SD_CD_PIN)
+#define SD_CD_PORT              PIOA
+#define SD_CD_PIN               30
 #endif
 
 #ifdef HAS_IOPORTS
-#define AUXOUTPUT0_PORT     PIOA
-#define AUXOUTPUT0_PIN      14
-#define AUXOUTPUT1_PORT     PIOD
-#define AUXOUTPUT1_PIN      0
-#define AUXOUTPUT2_PORT     PIOD
-#define AUXOUTPUT2_PIN      2
+#define AUXOUTPUT0_PORT         PIOA
+#define AUXOUTPUT0_PIN          14
+#define AUXOUTPUT1_PORT         PIOD
+#define AUXOUTPUT1_PIN          0
+#define AUXOUTPUT2_PORT         PIOD
+#define AUXOUTPUT2_PIN          2
 #endif
 
 /**/

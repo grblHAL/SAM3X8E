@@ -1,6 +1,6 @@
 ## SAM3X8E Driver
 
-A GrblHAL driver for the Atmel SAM3X8E processor on a [Arduino Due board](https://store.arduino.cc/arduino-due).
+A grblHAL driver for the Atmel SAM3X8E processor on a [Arduino Due board](https://store.arduino.cc/arduino-due).
 
 See the Wiki-page for [compiling grblHAL](https://github.com/grblHAL/core/wiki/Compiling-GrblHAL) for instructions for how to import the project, configure the driver and compile.
 

@@ -27,6 +27,7 @@
 #include "grbl/crossbar.h"
 #include "grbl/motor_pins.h"
 #include "grbl/protocol.h"
+#include "grbl/pin_bits_masks.h"
 
 #if USB_SERIAL_CDC
 #include "usb_serial.h"
@@ -1263,8 +1264,8 @@ static bool driver_setup (settings_t *settings)
  // Spindle init
 
     SPINDLE_PWM_PORT->PIO_WPMR = PIO_WPMR_WPKEY(0x50494F);
-    SPINDLE_PWM_PORT->PIO_ABSR |= SPINDLE_PWM_BIT;
-    SPINDLE_PWM_PORT->PIO_PDR = SPINDLE_PWM_BIT;
+    SPINDLE_PWM_PORT->PIO_ABSR |= (1 << SPINDLE_PWM_PIN);
+    SPINDLE_PWM_PORT->PIO_PDR = (1 << SPINDLE_PWM_PIN);
 
 #ifdef SPINDLE_PWM_CHANNEL
 #error "Spindle PWM to be completed for this board!"
@@ -1284,7 +1285,11 @@ static bool driver_setup (settings_t *settings)
 
  // Set defaults
 
+#if N_AXIS > 3
+    IOInitDone = settings->version == 20;
+#else
     IOInitDone = settings->version == 19;
+#endif
 
     hal.settings_changed(settings);
     hal.stepper.go_idle(true);
@@ -1411,7 +1416,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210810";
+	hal.driver_version = "210817";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif

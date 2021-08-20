@@ -28,51 +28,39 @@
 #endif
 
 #define BOARD_NAME "Ramps 1.6"
-//#define HAS_IOPORTS
+#define HAS_IOPORTS
 
  // Define step pulse output pins.
 #define X_STEP_PORT         PIOA
 #define X_STEP_PIN          16  // Due Analog Pin 0
-#define X_STEP_BIT          (1<<X_STEP_PIN)
 #define Y_STEP_PORT         PIOA
 #define Y_STEP_PIN          3   // Due Analog Pin 6
-#define Y_STEP_BIT          (1<<Y_STEP_PIN)
 #define Z_STEP_PORT         PIOC
 #define Z_STEP_PIN          17  // Due Digital Pin 46
-#define Z_STEP_BIT          (1<<Z_STEP_PIN)
 
 // Define step direction output pins.
 #define X_DIRECTION_PORT    PIOA
 #define X_DIRECTION_PIN     24  // Due Analog Pin 1
-#define X_DIRECTION_BIT     (1<<X_DIRECTION_PIN)
 #define Y_DIRECTION_PORT    PIOA
 #define Y_DIRECTION_PIN     2   // Due Analog Pin 7
-#define Y_DIRECTION_BIT     (1<<Y_DIRECTION_PIN)
 #define Z_DIRECTION_PORT    PIOC
 #define Z_DIRECTION_PIN     15  // Due Digital Pin 48
-#define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
-#
+
 // Define stepper driver enable/disable output pin(s).
 #define X_ENABLE_PORT       PIOC
 #define X_ENABLE_PIN        6   // Due Digital Pin 38
-#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
 #define Y_ENABLE_PORT       PIOA
 #define Y_ENABLE_PIN        23  // Due Analog Pin 2
-#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
 #define Z_ENABLE_PORT       PIOB
 #define Z_ENABLE_PIN        17  // Due Analog Pin 8
-#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
 
 // Define homing/hard limit switch input pins.
 #define X_LIMIT_PORT        PIOC
 #define X_LIMIT_PIN         28  // Due Digital Pin 3
-#define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
 #define Y_LIMIT_PORT        PIOD
 #define Y_LIMIT_PIN         4   // Due Digital Pin 14
-#define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
 #define Z_LIMIT_PORT        PIOA
 #define Z_LIMIT_PIN         11  // Due Digital Pin 18
-#define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
 
 // Define homing/hard limit switch input pins.
 #if X_AUTO_SQUARE
@@ -97,7 +85,6 @@
 #else
 #define Z_LIMIT_PORT_MAX    PIOA
 #define Z_LIMIT_PIN_MAX     10  // Due Digital Pin 19
-#define Z_LIMIT_BIT_MAX     (1<<Z_LIMIT_PIN_MAX)
 #endif
 
 // Define ganged axis or A axis step pulse and step direction output pins.
@@ -127,37 +114,28 @@
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PORT     PIOC
 #define SPINDLE_ENABLE_PIN      26  // Due Digital Pin 4
-#define SPINDLE_ENABLE_BIT      (1<<SPINDLE_ENABLE_PIN)
 #define SPINDLE_DIRECTION_PORT  PIOC
 #define SPINDLE_DIRECTION_PIN   22  // Due Digital Pin 8
-#define SPINDLE_DIRECTION_BIT   (1<<SPINDLE_DIRECTION_PIN)
 
 // Start of PWM & Stepper Enabled Spindle
 #define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[0])
 #define SPINDLE_PWM_CCREG   2
 #define SPINDLE_PWM_PORT    PIOC
 #define SPINDLE_PWM_PIN     25  // Due Digital Pin 5 // TIOA6
-#define SPINDLE_PWM_BIT     (1<<SPINDLE_PWM_PIN)
 
 #endif
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PORT  PIOB
 #define COOLANT_FLOOD_PIN   18  // Due Analog port 89
-#define COOLANT_FLOOD_BIT   (1<<COOLANT_FLOOD_PIN)
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT          PIOA
 #define RESET_PIN           22  // DUE Analog Pin 3
-#define RESET_BIT           (1<<RESET_PIN)
-
 #define FEED_HOLD_PORT      PIOA
 #define FEED_HOLD_PIN       4   // DUE Analog Pin 4
-#define FEED_HOLD_BIT       (1<<FEED_HOLD_PIN)
-
 #define CYCLE_START_PORT    PIOA
 #define CYCLE_START_PIN     6   // DUE Analog Pin 5
-#define CYCLE_START_BIT     (1<<CYCLE_START_PIN)
 
 #ifdef HAS_IOPORTS
 

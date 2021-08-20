@@ -28,46 +28,37 @@
  // Define step pulse output pins.
 #define X_STEP_PORT         PIOB
 #define X_STEP_PIN          25  // Due Digital Pin 2
-#define X_STEP_BIT          (1<<X_STEP_PIN)
 #define Y_STEP_PORT         PIOC
 #define Y_STEP_PIN          28  // Due Digital Pin 3
-#define Y_STEP_BIT          (1<<Y_STEP_PIN)
 #define Z_STEP_PORT         PIOC
 #define Z_STEP_PIN          26  // Due Digital Pin 4
-#define Z_STEP_BIT          (1<<Z_STEP_PIN)
 
 // Define step direction output pins.
 #define X_DIRECTION_PORT    PIOC
 #define X_DIRECTION_PIN     25  // Due Digital Pin 5
-#define X_DIRECTION_BIT     (1<<X_DIRECTION_PIN)
 #define Y_DIRECTION_PORT    PIOC
 #define Y_DIRECTION_PIN     24  // Due Digital Pin 6
-#define Y_DIRECTION_BIT     (1<<Y_DIRECTION_PIN)
 #define Z_DIRECTION_PORT    PIOC
 #define Z_DIRECTION_PIN     23  // Due Digital Pin 7
-#define Z_DIRECTION_BIT     (1<<Z_DIRECTION_PIN)
 
 // Define stepper driver enable/disable output pin(s).
 #define X_ENABLE_PORT       PIOB
 #define X_ENABLE_PIN        26  // Due Digital Pin 22
-#define X_ENABLE_BIT        (1<<X_ENABLE_PIN)
 #define Y_ENABLE_PORT       PIOD
 #define Y_ENABLE_PIN        0   // Due Digital Pin 25
-#define Y_ENABLE_BIT        (1<<Y_ENABLE_PIN)
 #define Z_ENABLE_PORT       PIOD
 #define Z_ENABLE_PIN        3   // Due Digital Pin 28
-#define Z_ENABLE_BIT        (1<<Z_ENABLE_PIN)
 
 // Define homing/hard limit switch min input pins.
 #define X_LIMIT_PORT        PIOD
 #define X_LIMIT_PIN         4   // Due Digital Pin 14
-#define X_LIMIT_BIT         (1<<X_LIMIT_PIN)
+
 #define Y_LIMIT_PORT        PIOA
 #define Y_LIMIT_PIN         13  // Due Digital Pin 16
-#define Y_LIMIT_BIT         (1<<Y_LIMIT_PIN)
+
 #define Z_LIMIT_PORT        PIOA
 #define Z_LIMIT_PIN         11  // Due Digital Pin 18
-#define Z_LIMIT_BIT         (1<<Z_LIMIT_PIN)
+
 
 // Define homing/hard limit switch max input pins.
 #if X_AUTO_SQUARE
@@ -92,7 +83,6 @@
 #else
 #define Z_LIMIT_PORT_MAX    PIOA
 #define Z_LIMIT_PIN_MAX     10  // Due Digital Pin 19
-#define Z_LIMIT_BIT_MAX     (1<<Z_LIMIT_PIN_MAX)
 #endif
 
 // Define ganged axis or A axis step pulse and step direction output pins.
@@ -143,33 +133,25 @@
 #endif
 
 // Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     PIOD
-#define SPINDLE_ENABLE_PIN      8   // Due Digital Pin 12
-#define SPINDLE_ENABLE_BIT      (1<<SPINDLE_ENABLE_PIN)
+#define SPINDLE_ENABLE_PORT PIOD
+#define SPINDLE_ENABLE_PIN  8   // Due Digital Pin 12
 
 // Start of PWM & Stepper Enabled Spindle
 #define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[2])
 #define SPINDLE_PWM_PORT    PIOD
 #define SPINDLE_PWM_PIN     7   // Due Digital Pin 11 / TIOA8
-#define SPINDLE_PWM_BIT     (1<<SPINDLE_PWM_PIN)
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PORT  PIOA
 #define COOLANT_FLOOD_PIN   22
-#define COOLANT_FLOOD_BIT   (1<<COOLANT_FLOOD_PIN)
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT          PIOA
 #define RESET_PIN           16
-#define RESET_BIT           (1<<RESET_PIN)
-
 #define FEED_HOLD_PORT      PIOA
 #define FEED_HOLD_PIN       24
-#define FEED_HOLD_BIT       (1<<FEED_HOLD_PIN)
-
 #define CYCLE_START_PORT    PIOA
 #define CYCLE_START_PIN     23
-#define CYCLE_START_BIT     (1<<CYCLE_START_PIN)
 
 // Define probe switch input pin.
 // NA

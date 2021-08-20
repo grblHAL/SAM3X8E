@@ -26,7 +26,7 @@
 #include "grbl/protocol.h"
 #include "grbl/settings.h"
 
-static uint8_t n_out, n_in;
+static uint8_t n_out, n_in, n_analog_in = 1;
 static volatile uint32_t event_bits;
 static volatile bool spin_lock = false;
 static input_signal_t *aux_in;
@@ -50,6 +50,17 @@ static const setting_detail_t aux_settings[] = {
 //    { Settings_IoPort_OD_Enable, Group_AuxPorts, "I/O Port outputs as open drain", NULL, Format_Bitfield, "Port 0,Port 1,Port 2,Port 3,Port 4,Port 5,Port 6,Port 7", NULL, NULL }
 };
 
+#ifndef NO_SETTINGS_DESCRIPTIONS
+
+static const setting_descr_t aux_settings_descr[] = {
+    { Settings_IoPort_InvertIn, "Invert IOPort inputs." },
+//    { Settings_IoPort_Pullup_Disable, "Disable IOPort input pullups." },
+    { Settings_IoPort_InvertOut, "Invert IOPort output." },
+//    { Settings_IoPort_OD_Enable, "Set IOPort outputs as open drain (OD)." }
+};
+
+#endif
+
 static void aux_settings_load (void);
 
 static setting_details_t details = {
@@ -57,6 +68,10 @@ static setting_details_t details = {
     .n_groups = sizeof(aux_groups) / sizeof(setting_group_detail_t),
     .settings = aux_settings,
     .n_settings = sizeof(aux_settings) / sizeof(setting_detail_t),
+#ifndef NO_SETTINGS_DESCRIPTIONS
+    .descriptions = aux_settings_descr,
+    .n_descriptions = sizeof(aux_settings_descr) / sizeof(setting_descr_t),
+#endif
     .load = aux_settings_load,
     .save = settings_write_global
 };
@@ -221,6 +236,9 @@ static int32_t wait_on_input (bool digital, uint8_t port, wait_mode_t wait_mode,
 
     if(digital && port < n_in)
         value = get_input(&aux_in[port], (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
+    else if(port < n_analog_in) {
+        value = analogRead(10);
+    }
 
     return value;
 }
@@ -274,6 +292,8 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
     if((hal.port.num_digital_out = n_out = aux_outputs->n_pins))
         hal.port.digital_out = digital_out;
 
+    hal.port.num_analog_in = n_analog_in;
+    analogReadResolution(12);
     hal.port.set_pin_description = set_pin_description;
 
     details.on_get_settings = grbl.on_get_settings;
