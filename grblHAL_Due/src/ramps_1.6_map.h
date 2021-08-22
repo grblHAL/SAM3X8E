@@ -79,7 +79,7 @@
 #define Y_LIMIT_PIN_MAX     5   // Due Digital Pin 15
 #define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
 #endif
-#if X_AUTO_SQUARE
+#if Z_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOA
 #define M3_LIMIT_PIN        10  // Due Digital Pin 19
 #else
