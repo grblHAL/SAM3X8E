@@ -21,16 +21,16 @@ Uncomment `#define BOARD_RAMPS16` in [driver.h](../main/driver.h) to use this ma
                                Y enable - A.23 [A2]    U    [05] C.25 - Spindle PWM
                                   Reset - A.22 [A3]    E    [04] C.26/A.29 - Spindle enable
                               Feed hold - A.06 [A4]         [03] C.28 - X limit min
-                            Cycle start - A.04 [A5]    S    [02] B.25 - X limit max
+                            Cycle start - A.04 [A5]    S    [02] B.25 - X limit max  (Alternative function: X Auto Square, if compiled)
                                  Y step - A.03 [A6]    A    [01] A.09
                                   Y dir - A.02 [A7]    M    [00] A.08
                                                        3
                                Z enable - B.17 [A8]    X    [14] D.04 - Y limit min
-                                Coolant - B.18 [A9]    8    [15] D.05 - Y limit max
+                                Coolant - B.18 [A9]    8    [15] D.05 - Y limit max  (Alternative function: Y Auto Square, if compiled)
                                           B.19 [A10]   E    [16] A.13
                                           B.20 [A11]        [17] A.12
                                           B.15 [DAC0]       [18] A.11 - Z limit min
-                                          B.16 [DAC1]       [19] A.10 - Z limit max
+                                          B.16 [DAC1]       [19] A.10 - Z limit max  (Alternative function: Z Auto Square, if compiled)
                                           A.00 [CANRX]      [20] B.12
                                           A.01 [CANTX]      [21] B.13
 
