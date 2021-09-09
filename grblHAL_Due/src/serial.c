@@ -203,6 +203,11 @@ static bool serialSetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+static bool serialEnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command(c);
+}
+
 static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command_ptr handler)
 {
     enqueue_realtime_command_ptr prev = enqueue_realtime_command;
@@ -220,6 +225,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .read = serialGetC,
         .write = serialWriteS,
         .write_char = serialPutC,
+        .enqueue_rt_command = serialEnqueueRtCommand,
         .get_rx_buffer_free = serialRxFree,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
@@ -476,6 +482,12 @@ static bool serial2SetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+
+static bool serial2EnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command(c);
+}
+
 static enqueue_realtime_command_ptr serial2SetRtHandler (enqueue_realtime_command_ptr handler)
 {
     enqueue_realtime_command_ptr prev = enqueue_realtime_command2;
@@ -496,6 +508,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .write_n =  serial2Write,
         .write_char = serial2PutC,
         .write_all = serial2WriteS,
+        .enqueue_rt_command = serial2EnqueueRtCommand,
         .get_rx_buffer_free = serial2RxFree,
         .get_rx_buffer_count = serial2RxCount,
         .get_tx_buffer_count = serial2TxCount,
