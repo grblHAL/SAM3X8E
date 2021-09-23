@@ -18,4 +18,4 @@
 	url = https://github.com/grblHAL/Plugin_OpenPNP
 [submodule "grblHAL_Due/src/plasma"]
 	path = grblHAL_Due/src/plasma
-	url = https://github.com/grblHAL/Plugin_plasma
+	url = https://github.com/grblHAL/Plugin_OpenPNP
