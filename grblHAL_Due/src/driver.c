@@ -316,6 +316,9 @@ static bool selectStream (const io_stream_t *stream)
 
     hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
 
+    if(grbl.on_stream_changed)
+        grbl.on_stream_changed(hal.stream.type);
+
     active_stream = hal.stream.type;
 
     return stream->type == hal.stream.type;
@@ -1416,7 +1419,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "210930";
+	hal.driver_version = "211029";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1546,8 +1549,12 @@ bool driver_init (void)
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
+#if MODBUS_ENABLE
+    modbus_init(serial2Init(19200), NULL);
+#endif
+
 #if SPINDLE_HUANYANG
-    huanyang_init(modbus_init(serial2Init(19200), NULL));
+    huanyang_init();
 #endif
 
 #if BLUETOOTH_ENABLE

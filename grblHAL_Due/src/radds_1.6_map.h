@@ -104,7 +104,7 @@
 #define M4_ENABLE_PIN       9   // Due Digital Pin 65
 #endif
 
-#ifndef MODBUS_ENABLE
+#if VFD_SPINDLE == 0
 
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PORT PIOC

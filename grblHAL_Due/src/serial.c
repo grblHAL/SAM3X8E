@@ -554,11 +554,11 @@ static void SERIAL2_IRQHandler (void)
         char data = (char)SERIAL2_PERIPH->US_RHR;
         if(!enqueue_realtime_command2(data)) {
             uint_fast16_t next_head = BUFNEXT(rx2buf.head, rx2buf); // Get and increment buffer pointer
-            if(bptr == rx2buf.tail)                                 // If buffer full
+            if(next_head == rx2buf.tail)                                 // If buffer full
                 rx2buf.overflow = 1;                                // flag overflow,
             else {
                 rx2buf.data[rx2buf.head] = data;                    // else add data to buffer
-                rx2buf.head = bptr;                                 // and update pointer
+                rx2buf.head = next_head;                            // and update pointer
             }
         }
     }

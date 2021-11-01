@@ -108,6 +108,14 @@ void IRQUnRegister(int32_t IRQnum);
 #include "spindle/huanyang.h"
 #endif
 
+#if MODBUS_ENABLE
+#include "spindle/modbus.h"
+#endif
+
+#ifndef VFD_SPINDLE
+#define VFD_SPINDLE 0
+#endif
+
 #if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
 
 #ifndef I2C_ENABLE
