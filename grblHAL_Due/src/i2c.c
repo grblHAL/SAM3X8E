@@ -53,7 +53,7 @@ typedef struct {
     uint16_t count;
     uint8_t *data;
     uint8_t regaddr[2];
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
     keycode_callback_ptr keycode_callback;
 #endif
     uint8_t buffer[8];
@@ -90,6 +90,25 @@ void i2c_init (void)
 
         NVIC_SetPriority(I2C_IRQ, 0);
         NVIC_EnableIRQ(I2C_IRQ);
+
+        static const periph_pin_t scl = {
+            .function = Output_SCK,
+            .group = PinGroup_I2C,
+            .port = I2C_PERIPH,
+            .pin = I2C_SDA_BIT,
+            .mode = { .mask = PINMODE_OD }
+        };
+
+        static const periph_pin_t sda = {
+            .function = Bidirectional_SDA,
+            .group = PinGroup_I2C,
+            .port = I2C_PERIPH,
+            .pin = I2C_SDA_PIN,
+            .mode = { .mask = PINMODE_OD }
+        };
+
+        hal.periph_port.register_pin(&scl);
+        hal.periph_port.register_pin(&sda);
     }
 }
 
@@ -184,7 +203,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
 
 void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
 {
@@ -313,7 +332,7 @@ static void I2C_interrupt_handler (void)
             *i2c.data = I2C_PERIPH->TWI_RHR;
             i2c.count = 0;
             i2c.state = I2CState_Idle;
-          #if KEYPAD_ENABLE
+          #if KEYPAD_ENABLE == 1
             if(i2c.keycode_callback) {
                 i2c.keycode_callback(*i2c.data);
                 i2c.keycode_callback = NULL;

@@ -221,6 +221,7 @@ const io_stream_t *usb_serialInit(void)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
+        .instance = 0,
         .connected = false,
         .get_rx_buffer_free = usb_serialRxFree,
         .write = usb_serialWriteS,

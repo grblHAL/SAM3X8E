@@ -153,8 +153,10 @@ void IRQUnRegister(int32_t IRQnum);
 
 // Simple sanity check...
 
-#if KEYPAD_ENABLE && !defined(KEYPAD_PIN)
-#error Keypad plugin is not available for this driver
+#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PORT)
+#error Keypad plugin not supported!
+#elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PORT)
+#error I2C strobe not supported!
 #endif
 
 typedef struct {

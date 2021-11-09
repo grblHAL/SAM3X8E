@@ -239,9 +239,9 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 
 #if SERIAL_DEVICE >= 0
     SERIAL_PORT->PIO_WPMR = 0x50494F;
-    SERIAL_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
+    SERIAL_PORT->PIO_PDR  = (1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
+    SERIAL_PORT->PIO_OER  = (1<<SERIAL_TX);
+    SERIAL_PORT->PIO_ABSR &= ~(1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
 #endif
 
     serialSetBaudRate(baud_rate);
@@ -251,6 +251,26 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     NVIC_EnableIRQ(SERIAL_IRQ);
     NVIC_SetPriority(SERIAL_IRQ, 1);
 
+    static const periph_pin_t tx = {
+        .function = Output_TX,
+        .group = PinGroup_UART,
+        .port = SERIAL_PORT,
+        .pin = SERIAL_TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "Primary UART"
+    };
+
+    static const periph_pin_t rx = {
+        .function = Input_RX,
+        .group = PinGroup_UART,
+        .port = SERIAL_PORT,
+        .pin = SERIAL_RX_PIN,
+        .mode = { .mask = PINMODE_NONE },
+        .description = "Primary UART"
+    };
+
+    hal.periph_port.register_pin(&rx);
+    hal.periph_port.register_pin(&tx);
     return &stream;
 }
 
@@ -502,6 +522,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
+        .instance = 1,
         .connected = true,
         .read = serial2GetC,
         .write = serial2WriteS,
@@ -524,9 +545,9 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
     pmc_enable_periph_clk(SERIAL2_PORT_ID);
 
     SERIAL2_PORT->PIO_WPMR = 0x50494F;
-    SERIAL2_PORT->PIO_PDR  = SERIAL_RX|SERIAL_TX;
-    SERIAL2_PORT->PIO_OER  = SERIAL_TX;
-    SERIAL2_PORT->PIO_ABSR &= ~(SERIAL_RX|SERIAL_TX);
+    SERIAL2_PORT->PIO_PDR  = (1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN);
+    SERIAL2_PORT->PIO_OER  = (1<<SERIAL2_TX_PIN);
+    SERIAL2_PORT->PIO_ABSR &= ~((1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN));
 
     serial2SetBaudRate(baud_rate);
 
@@ -534,6 +555,27 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 
     NVIC_EnableIRQ(SERIAL2_IRQ);
     NVIC_SetPriority(SERIAL2_IRQ, 1);
+
+    static const periph_pin_t tx = {
+        .function = Output_TX,
+        .group = PinGroup_UART2,
+        .port = SERIAL2_PORT,
+        .pin = SERIAL2_TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "Secondary UART"
+    };
+
+    static const periph_pin_t rx = {
+        .function = Input_RX,
+        .group = PinGroup_UART2,
+        .port = SERIAL2_PORT,
+        .pin = SERIAL2_RX_PIN,
+        .mode = { .mask = PINMODE_NONE },
+        .description = "Secondary UART"
+    };
+
+    hal.periph_port.register_pin(&rx);
+    hal.periph_port.register_pin(&tx);
 
     return &stream;
 }

@@ -20,6 +20,8 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+
 #include "driver.h"
 #include "serial.h"
 
@@ -83,12 +85,14 @@ static probe_state_t probe = {
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 #endif
 
-#ifndef VFD_SPINDLE
+#if !VFD_SPINDLE
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm = {0};
 
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
+
+static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
   #ifdef PROBE_PIN
@@ -145,8 +149,8 @@ static input_signal_t inputpin[] = {
   #ifdef C_LIMIT_PIN_MAX
     { .id = Input_LimitC_Max,   .port = C_LIMIT_PORT_MAX,  .pin = C_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
   #endif
-  #if KEYPAD_ENABLE
-    { .id = Input_KeypadStrobe, .port = KEYPAD_PORT,       .pin = KEYPAD_PIN,        .group = PinGroup_Keypad },
+  #ifdef I2C_STROBE_PORT
+    { .id = Input_KeypadStrobe, .port = I2C_STROBE_PORT,   .pin = I2C_STROBE_PIN,    .group = PinGroup_Keypad },
   #endif
     // Aux input pins must be consecutive in this array
 #ifdef AUXINPUT0_PIN
@@ -278,6 +282,22 @@ static void PIOD_IRQHandler (void);
 static void DEBOUNCE_IRQHandler (void);
 
 extern void Dummy_Handler(void);
+
+#if I2C_STROBE_ENABLE
+
+static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
+
+static bool irq_claim (irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
+{
+    bool ok;
+
+    if((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
+        i2c_strobe.callback = handler;
+
+    return ok;
+}
+
+#endif
 
 inline __attribute__((always_inline)) void IRQRegister(int32_t IRQnum, void (*IRQhandler)(void))
 {
@@ -724,7 +744,7 @@ probe_state_t probeGetState (void)
 
 #endif
 
-#ifndef VFD_SPINDLE
+#if !VFD_SPINDLE
 
 // Static spindle (off, on cw & on ccw)
 
@@ -975,7 +995,7 @@ void settings_changed (settings_t *settings)
         hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
 
-      #ifndef VFD_SPINDLE
+      #if !VFD_SPINDLE
         if(hal.driver_cap.variable_spindle && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer)) {
             SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
             hal.spindle.set_state = spindleSetStateVariable;
@@ -1197,6 +1217,54 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
 
         pin_info(&pin);
     };
+
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        pin.pin = ppin->pin.pin;
+        pin.function = ppin->pin.function;
+        pin.group = ppin->pin.group;
+        pin.port = low_level ? ppin->pin.port : (void *)port2char(ppin->pin.port);
+        pin.mode = ppin->pin.mode;
+        pin.description = ppin->pin.description;
+
+        pin_info(&pin);
+
+        ppin = ppin->next;
+    } while(ppin);
+}
+
+void registerPeriphPin (const periph_pin_t *pin)
+{
+    periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
+
+    if(!add_pin)
+        return;
+
+    memcpy(&add_pin->pin, pin, sizeof(periph_pin_t));
+    add_pin->next = NULL;
+
+    if(periph_pins == NULL) {
+        periph_pins = add_pin;
+    } else {
+        periph_signal_t *last = periph_pins;
+        while(last->next)
+            last = last->next;
+        last->next = add_pin;
+    }
+}
+
+void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
+{
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        if(ppin->pin.function == function && ppin->pin.group == group) {
+            ppin->pin.description = description;
+            ppin = NULL;
+        } else
+            ppin = ppin->next;
+    } while(ppin);
 }
 
 // Initializes MCU peripherals for Grbl use
@@ -1262,7 +1330,7 @@ static bool driver_setup (settings_t *settings)
         NVIC_EnableIRQ(DEBOUNCE_TIMER_IRQn);    // Enable debounce interrupt
     }
 
-#ifndef VFD_SPINDLE
+#if !VFD_SPINDLE
 
  // Spindle init
 
@@ -1279,6 +1347,16 @@ static bool driver_setup (settings_t *settings)
     SPINDLE_PWM_TIMER.TC_CCR = TC_CCR_CLKDIS;
     SPINDLE_PWM_TIMER.TC_CMR = TC_CMR_WAVE|TC_CMR_WAVSEL_UP_RC|TC_CMR_ASWTRG_CLEAR|TC_CMR_ACPA_SET|TC_CMR_ACPC_CLEAR; //|TC_CMR_EEVT_XC0;
 #endif
+
+    static const periph_pin_t pwm = {
+        .function = Output_SpindlePWM,
+        .group = PinGroup_SpindlePWM,
+        .port = SPINDLE_PWM_PORT,
+        .pin = SPINDLE_PWM_PIN,
+        .mode = { .mask = PINMODE_OUTPUT }
+    };
+
+    hal.periph_port.register_pin(&pwm);
 
 #endif
 
@@ -1419,7 +1497,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211029";
+	hal.driver_version = "211108";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1450,7 +1528,7 @@ bool driver_init (void)
     hal.probe.get_state = probeGetState;
 #endif
 
-#ifndef VFD_SPINDLE
+#if !VFD_SPINDLE
     hal.spindle.set_state = spindleSetState;
     hal.spindle.get_state = spindleGetState;
   #ifdef SPINDLE_PWM_DIRECT
@@ -1463,6 +1541,23 @@ bool driver_init (void)
 
     hal.control.get_state = systemGetState;
 
+#ifdef DEBUGOUT
+    hal.debug_out = debug_out;
+#endif
+
+    hal.irq_enable = __enable_irq;
+    hal.irq_disable = __disable_irq;
+#if I2C_STROBE_ENABLE
+    hal.irq_claim = irq_claim;
+#endif
+    hal.set_bits_atomic = bitsSetAtomic;
+    hal.clear_bits_atomic = bitsClearAtomic;
+    hal.set_value_atomic = valueSetAtomic;
+    hal.get_elapsed_ticks = millis;
+    hal.enumerate_pins = enumeratePins;
+    hal.periph_port.register_pin = registerPeriphPin;
+    hal.periph_port.set_pin_description = setPeriphPinDescription;
+
 #if USB_SERIAL_CDC
     serial_stream = usb_serialInit();
     grbl.on_execute_realtime = execute_realtime;
@@ -1472,10 +1567,6 @@ bool driver_init (void)
 
     hal.stream_select = selectStream;
     hal.stream_select(serial_stream);
-
-#ifdef DEBUGOUT
-    hal.debug_out = debug_out;
-#endif
 
 #if I2C_ENABLE
     i2c_init();
@@ -1492,21 +1583,13 @@ bool driver_init (void)
         hal.nvs.type = NVS_None;
 #endif
 
-    hal.irq_enable = __enable_irq;
-    hal.irq_disable = __disable_irq;
-    hal.set_bits_atomic = bitsSetAtomic;
-    hal.clear_bits_atomic = bitsClearAtomic;
-    hal.set_value_atomic = valueSetAtomic;
-    hal.get_elapsed_ticks = millis;
-    hal.enumerate_pins = enumeratePins;
-
  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
 #ifdef SAFETY_DOOR_PIN
     hal.signals_cap.safety_door_ajar = On;
 #endif
 
-#ifndef VFD_SPINDLE
+#if !VFD_SPINDLE
   #ifdef SPINDLE_DIRECTION_PIN
     hal.driver_cap.spindle_dir = On;
   #endif
@@ -1678,9 +1761,10 @@ inline static void PIO_IRQHandler (input_signal_t *signals, uint32_t isr)
                 case PinGroup_AuxInput:
                     ioports_event(&signals[i]);
                     break;
-#if KEYPAD_ENABLE
+#if I2C_STROBE_ENABLE
                 case PinGroup_Keypad:
-                    keypad_keyclick_handler(!BITBAND_PERI(KEYPAD_PORT->PIO_PDSR, KEYPAD_PIN));
+                    if(i2c_strobe.callback)
+                        i2c_strobe.callback(0, !BITBAND_PERI(I2C_STROBE_PORT->PIO_PDSR, I2C_STROBE_PIN));
                     break;
 #endif
                 default:
