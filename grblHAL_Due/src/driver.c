@@ -85,7 +85,7 @@ static probe_state_t probe = {
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 #endif
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm = {0};
 
@@ -239,7 +239,7 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnableC,  .port = C_ENABLE_PORT,              .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
 #endif
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 #ifdef SPINDLE_ENABLE_PIN
     { .id = Output_SpindleOn,       .port = SPINDLE_ENABLE_PORT,        .pin = SPINDLE_ENABLE_PIN,      .group = PinGroup_SpindleControl },
 #endif
@@ -744,7 +744,7 @@ probe_state_t probeGetState (void)
 
 #endif
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 
 // Static spindle (off, on cw & on ccw)
 
@@ -995,7 +995,7 @@ void settings_changed (settings_t *settings)
         hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
 
-      #if !VFD_SPINDLE
+      #if VFD_SPINDLE != 1
         if(hal.driver_cap.variable_spindle && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer)) {
             SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
             hal.spindle.set_state = spindleSetStateVariable;
@@ -1042,7 +1042,8 @@ void settings_changed (settings_t *settings)
 
             pullup = false;
             input->bit = 1U << input->pin;
-            input->irq_mode = IRQ_Mode_None;
+            if(input->group != PinGroup_AuxInput)
+                input->irq_mode = IRQ_Mode_None;
 
             if(input->port != NULL) {
 
@@ -1121,11 +1122,8 @@ void settings_changed (settings_t *settings)
                         break;
                 }
 
-                if(input->group == PinGroup_AuxInput) {
+                if(input->group == PinGroup_AuxInput)
                     pullup = true;
-                    input->cap.pull_mode = (PullMode_Up|PullMode_Down);
-                    input->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling|IRQ_Mode_Change);
-                }
 
                 PIO_Mode(input->port, input->bit, INPUT);
                 PIO_InputMode(input->port, input->bit, !pullup);
@@ -1330,7 +1328,7 @@ static bool driver_setup (settings_t *settings)
         NVIC_EnableIRQ(DEBOUNCE_TIMER_IRQn);    // Enable debounce interrupt
     }
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 
  // Spindle init
 
@@ -1497,7 +1495,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211108";
+	hal.driver_version = "211113";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1528,7 +1526,7 @@ bool driver_init (void)
     hal.probe.get_state = probeGetState;
 #endif
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
     hal.spindle.set_state = spindleSetState;
     hal.spindle.get_state = spindleGetState;
   #ifdef SPINDLE_PWM_DIRECT
@@ -1589,12 +1587,16 @@ bool driver_init (void)
     hal.signals_cap.safety_door_ajar = On;
 #endif
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
   #ifdef SPINDLE_DIRECTION_PIN
     hal.driver_cap.spindle_dir = On;
   #endif
     hal.driver_cap.variable_spindle = On;
+#if DUAL_SPINDLE
+    hal.driver_cap.dual_spindle = On;
 #endif
+#endif
+
 #ifdef COOLANT_MIST_PIN
     hal.driver_cap.mist_control = On;
 #endif
@@ -1616,6 +1618,8 @@ bool driver_init (void)
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
             aux_inputs.n_pins++;
+            input->cap.pull_mode = PullMode_UpDown;
+            input->cap.irq_mode = IRQ_Mode_Edges;
         }
     }
 
@@ -1634,10 +1638,6 @@ bool driver_init (void)
 
 #if MODBUS_ENABLE
     modbus_init(serial2Init(19200), NULL);
-#endif
-
-#if SPINDLE_HUANYANG
-    huanyang_init();
 #endif
 
 #if BLUETOOTH_ENABLE

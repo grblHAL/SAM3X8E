@@ -104,16 +104,8 @@ void IRQUnRegister(int32_t IRQnum);
 #include "tmc2130/trinamic.h"
 #endif
 
-#if SPINDLE_HUANYANG
-#include "spindle/huanyang.h"
-#endif
-
 #if MODBUS_ENABLE
 #include "spindle/modbus.h"
-#endif
-
-#ifndef VFD_SPINDLE
-#define VFD_SPINDLE 0
 #endif
 
 #if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
@@ -178,6 +170,7 @@ typedef struct {
     uint32_t bit;
     pin_function_t id;
     pin_group_t group;
+    pin_mode_t mode;
     const char *description;
 } output_signal_t;
 

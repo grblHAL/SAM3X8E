@@ -35,7 +35,7 @@
 
 //#define USB_SERIAL_CDC     1 // Use native USB port for communication.
 //#define BLUETOOTH_ENABLE   1 // Set to 1 for HC-05 module. Requires and claims one auxillary input pin.
-//#define SPINDLE_HUANYANG   1 // Set to 1 or 2 for Huanyang VFD spindle.
+//#define HUANYANG_ENABLE    1 // Set to 1 or 2 for Huanyang VFD spindle.
 //#define MODBUS_ENABLE      1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define PLASMA_ENABLE      1 // Plasma/THC plugin.
 //#define OPENPNP_ENABLE     1 // OpenPNP plugin. To be completed.
@@ -45,7 +45,7 @@
 #ifndef USB_SERIAL_CDC
 #define SERIAL_DEVICE       -1 // Select serial device for output if not using native USB, default is -1, max value is 2
 #endif
-#ifdef SPINDLE_HUANYANG
+#ifdef HUANYANG_ENABLE
 #define SERIAL2_DEVICE       1 // Select serial device for ModBus output, default is 1, allowed values are 0, 1 and 2
 #endif
 
