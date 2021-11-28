@@ -44,10 +44,6 @@
 #include "eeprom/eeprom.h"
 #endif
 
-#if BLUETOOTH_ENABLE
-#include "bluetooth/bluetooth.h"
-#endif
-
 #if PLASMA_ENABLE
 #include "plasma/thc.h"
 #endif
@@ -1511,7 +1507,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211121";
+	hal.driver_version = "211124";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1654,21 +1650,7 @@ bool driver_init (void)
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
-#if MODBUS_ENABLE
-    modbus_init(serial2Init(19200), NULL);
-#endif
-
-#if BLUETOOTH_ENABLE
- #if BLUETOOTH_ENABLE == 2
-    bluetooth_init(serial2Init(115200));
- #else
-  #if USB_SERIAL_CDC
-    bluetooth_init(serialInit(115200));
-  #else
-    bluetooth_init(serial_stream);
-  #endif
- #endif
-#endif
+    serialRegisterStreams();
 
 #if PLASMA_ENABLE
     hal.stepper.output_step = stepperOutputStep;

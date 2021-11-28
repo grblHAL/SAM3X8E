@@ -135,6 +135,7 @@ extern "C" {
 #endif
 
 const io_stream_t *serialInit(uint32_t baud_rate);
+void serialRegisterStreams (void);
 #ifdef SERIAL2_DEVICE
 const io_stream_t *serial2Init(uint32_t baud_rate);
 #endif
