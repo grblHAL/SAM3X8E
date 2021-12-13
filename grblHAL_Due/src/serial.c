@@ -569,7 +569,6 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .write = serial2WriteS,
         .write_n =  serial2Write,
         .write_char = serial2PutC,
-        .write_all = serial2WriteS,
         .enqueue_rt_command = serial2EnqueueRtCommand,
         .get_rx_buffer_free = serial2RxFree,
         .get_rx_buffer_count = serial2RxCount,

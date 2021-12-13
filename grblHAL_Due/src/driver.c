@@ -69,7 +69,6 @@ typedef struct {
 
 static bool IOInitDone = false;
 static uint32_t pulse_length, pulse_delay;
-static const io_stream_t *serial_stream;
 static axes_signals_t next_step_outbits;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static debounce_queue_t debounce_queue = {0};
@@ -313,31 +312,6 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
             while(delay_ms.ms);
     } else if(callback)
         callback();
-}
-
-static bool selectStream (const io_stream_t *stream)
-{
-    static stream_type_t active_stream = StreamType_Serial;
-
-    if(!stream)
-        stream = serial_stream;
-
-    if(hal.stream.read != stream->read)
-        stream->reset_read_buffer();
-
-    memcpy(&hal.stream, stream, sizeof(io_stream_t));
-
-    if(!hal.stream.write_all)
-        hal.stream.write_all = hal.stream.write;
-
-    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
-
-    if(grbl.on_stream_changed)
-        grbl.on_stream_changed(hal.stream.type);
-
-    active_stream = hal.stream.type;
-
-    return stream->type == hal.stream.type;
 }
 
 #if PLASMA_ENABLE
@@ -1507,7 +1481,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211203";
+	hal.driver_version = "211209";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1571,14 +1545,11 @@ bool driver_init (void)
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
 #if USB_SERIAL_CDC
-    serial_stream = usb_serialInit();
+    stream_connect(usb_serialInit());
     grbl.on_execute_realtime = execute_realtime;
 #else
-    serial_stream = serialInit(115200);
+    stream_connect(serialInit(115200));
 #endif
-
-    hal.stream_select = selectStream;
-    hal.stream_select(serial_stream);
 
 #if I2C_ENABLE
     i2c_init();
