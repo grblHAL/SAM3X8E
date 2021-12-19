@@ -27,10 +27,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-extern void usb_execute_realtime (uint_fast16_t state);
-
-#define usb_serial_poll() usb_execute_realtime(0)
-
 const io_stream_t *usb_serialInit(void);
 
 #endif

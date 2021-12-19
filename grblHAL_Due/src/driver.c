@@ -1442,15 +1442,6 @@ bool nvsInit (void)
 
 // End EEPROM emulation
 
-#if USB_SERIAL_CDC
-static void execute_realtime (uint_fast16_t state)
-{
-#if USB_SERIAL_CDC
-    usb_execute_realtime(state);
-#endif
-}
-#endif
-
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
@@ -1481,7 +1472,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211209";
+	hal.driver_version = "211213";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1546,7 +1537,6 @@ bool driver_init (void)
 
 #if USB_SERIAL_CDC
     stream_connect(usb_serialInit());
-    grbl.on_execute_realtime = execute_realtime;
 #else
     stream_connect(serialInit(115200));
 #endif
