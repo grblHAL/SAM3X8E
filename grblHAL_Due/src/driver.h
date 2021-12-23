@@ -108,12 +108,6 @@ void IRQUnRegister(int32_t IRQnum);
 #include "spindle/modbus.h"
 #endif
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE || (TRINAMIC_ENABLE && TRINAMIC_I2C)
-
-#ifndef I2C_ENABLE
-#define I2C_ENABLE 1
-#endif
-
 // Define I2C port/pins
 
 #if I2C_ENABLE == 1
@@ -139,9 +133,6 @@ void IRQUnRegister(int32_t IRQnum);
 #endif
 
 #define I2C_CLOCK 100000
-#else
-#define I2C_ENABLE 0
-#endif
 
 // Simple sanity check...
 
