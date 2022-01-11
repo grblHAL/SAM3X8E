@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -308,8 +308,10 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
 {
     if((delay_ms.ms = ms) > 0) {
         SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
-        if(!(delay_ms.callback = callback))
-            while(delay_ms.ms);
+        if(!(delay_ms.callback = callback)) {
+            while(delay_ms.ms)
+                grbl.on_execute_delay(state_get());
+        }
     } else if(callback)
         callback();
 }
@@ -1357,8 +1359,12 @@ static bool driver_setup (settings_t *settings)
     IOInitDone = settings->version == 21;
 
     hal.settings_changed(settings);
+
     hal.stepper.go_idle(true);
-    hal.spindle.set_state((spindle_state_t){0}, 0.0f);
+
+    if(hal.spindle.set_state)
+        hal.spindle.set_state((spindle_state_t){0}, 0.0f);
+
     hal.coolant.set_state((coolant_state_t){0});
 
 #if SDCARD_ENABLE
@@ -1472,7 +1478,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "211213";
+	hal.driver_version = "220111";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1582,9 +1588,9 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
-#ifdef HAS_IOPORTS
     uint32_t i;
     input_signal_t *input;
+    output_signal_t *output;
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
@@ -1592,22 +1598,22 @@ bool driver_init (void)
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
-            aux_inputs.n_pins++;
+            input->id = (pin_function_t)(Input_Aux0 + aux_inputs.n_pins++);
             input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_Edges;
         }
     }
 
-    output_signal_t *output;
     for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
-            aux_outputs.n_pins++;
+            output->id = (pin_function_t)(Output_Aux0 + aux_outputs.n_pins++);
         }
     }
 
+#ifdef HAS_IOPORTS
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
