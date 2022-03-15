@@ -29,6 +29,7 @@
 #include "grbl/crossbar.h"
 #include "grbl/motor_pins.h"
 #include "grbl/protocol.h"
+#include "grbl/state_machine.h"
 #include "grbl/pin_bits_masks.h"
 
 #if USB_SERIAL_CDC
@@ -599,7 +600,7 @@ inline static limit_signals_t limitsGetState (void)
 {
     limit_signals_t signals = {0};
 
-    signals.min.mask = signals.max.mask = settings.limits.invert.mask;
+    signals.min.mask = settings.limits.invert.mask;
 #ifdef DUAL_LIMIT_SWITCHES
     signals.min2.mask = settings.limits.invert.mask;
 #endif
@@ -1478,7 +1479,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220111";
+	hal.driver_version = "220309";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1544,7 +1545,7 @@ bool driver_init (void)
 #if USB_SERIAL_CDC
     stream_connect(usb_serialInit());
 #else
-    stream_connect(serialInit(115200));
+    stream_connect(serialInit(BAUD_RATE));
 #endif
 
 #if I2C_ENABLE
