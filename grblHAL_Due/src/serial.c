@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2022 Terje Io
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -381,7 +381,7 @@ static uint16_t serial2TxCount (void)
 {
     uint16_t tail = tx2buf.tail;
 
-    return BUFCOUNT(tx2buf.head, tail, TX_BUFFER_SIZE) + (SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY ? 0 : 1);
+    return BUFCOUNT(tx2buf.head, tail, TX_BUFFER_SIZE) + (SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1;
 }
 
 //
@@ -451,17 +451,14 @@ static bool serial2PutC (const char c)
 {
     if(tx2buf.head != tx2buf.tail || !serial2PutCNonBlocking(c)) {  // Try to send character without buffering...
 
-        uint_fast16_t next_head = BUFNEXT(txbuf.head, txbuf);       // .. if not, get pointer to next free slot in buffer
+        uint_fast16_t next_head = BUFNEXT(tx2buf.head, tx2buf);     // .. if not, get pointer to next free slot in buffer
 
-#if MODBUS_ENABLE
-        while(tx2buf.tail == next_head);                            // Block while TX buffer full
-#else
         while(tx2buf.tail == next_head) {                           // While TX buffer full
       //      SERIAL2_MODULE->IE |= EUSCI_A_IE_TXIE;                // Enable TX interrupts???
             if(!hal.stream_blocking_callback())                     // check if blocking for space,
                 return false;                                       // exit if not (leaves TX buffer in an inconsistent state)
         }
-#endif
+
         tx2buf.data[tx2buf.head] = c;                               // Add data to buffer
         tx2buf.head = next_head;                                    // and update head pointer
 
@@ -641,7 +638,7 @@ static void SERIAL2_IRQHandler (void)
         char data = (char)SERIAL2_PERIPH->US_RHR;
         if(!enqueue_realtime_command2(data)) {
             uint_fast16_t next_head = BUFNEXT(rx2buf.head, rx2buf); // Get and increment buffer pointer
-            if(next_head == rx2buf.tail)                                 // If buffer full
+            if(next_head == rx2buf.tail)                            // If buffer full
                 rx2buf.overflow = 1;                                // flag overflow,
             else {
                 rx2buf.data[rx2buf.head] = data;                    // else add data to buffer
@@ -651,7 +648,7 @@ static void SERIAL2_IRQHandler (void)
     }
 
     if(SERIAL2_PERIPH->US_CSR & US_CSR_TXRDY) {
-        uint_fast16_t tail = txbuf.tail;                            // Get buffer pointer
+        uint_fast16_t tail = tx2buf.tail;                            // Get buffer pointer
         if(tail != tx2buf.head) {
             SERIAL2_PERIPH->US_THR = (uint32_t)tx2buf.data[tail];   // Send a byte from the buffer
             tx2buf.tail = tail = BUFNEXT(tail, tx2buf);             // and increment pointer
