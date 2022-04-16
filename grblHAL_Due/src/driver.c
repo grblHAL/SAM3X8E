@@ -167,15 +167,15 @@ static input_signal_t inputpin[] = {
 static output_signal_t outputpin[] = {
     { .id = Output_StepX,           .port = X_STEP_PORT,                .pin = X_STEP_PIN,              .group = PinGroup_StepperStep },
 #ifdef X2_STEP_PORT
-    { .id = Output_StepX,           .port = X2_STEP_PORT,               .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepX_2,          .port = X2_STEP_PORT,               .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
     { .id = Output_StepY,           .port = Y_STEP_PORT,                .pin = Y_STEP_PIN,              .group = PinGroup_StepperStep },
 #ifdef Y2_STEP_PORT
-    { .id = Output_StepY,           .port = Y2_STEP_PORT,               .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepY_2,         .port = Y2_STEP_PORT,               .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
     { .id = Output_StepZ,           .port = Z_STEP_PORT,                .pin = Z_STEP_PIN,              .group = PinGroup_StepperStep },
 #ifdef Z2_STEP_PORT
-    { .id = Output_StepZ,           .port = Z2_STEP_PORT,               .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepZ_2,         .port = Z2_STEP_PORT,               .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
 #ifdef A_AXIS
     { .id = Output_StepA,           .port = A_STEP_PORT,                .pin = A_STEP_PIN,              .group = PinGroup_StepperStep },
@@ -191,7 +191,7 @@ static output_signal_t outputpin[] = {
     { .id = Output_DirX_2,          .port = X2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
     { .id = Output_DirY,            .port = Y_DIRECTION_PORT,           .pin = Y_DIRECTION_PIN,         .group = PinGroup_StepperDir },
-#ifdef Y2_DIRECTION_PIN2
+#ifdef Y2_DIRECTION_PIN
     { .id = Output_DirY_2,          .port = Y2_DIRECTION_PORT,          .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
     { .id = Output_DirZ,            .port = Z_DIRECTION_PORT,           .pin = Z_DIRECTION_PIN,         .group = PinGroup_StepperDir },
@@ -461,7 +461,7 @@ static axes_signals_t getGangedAxes (bool auto_squared)
 // Set stepper direction output pins
 inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_t dir_outbits)
 {
-    dir_outbits.value ^= settings.steppers.dir_invert.mask;
+    dir_outbits.mask ^= settings.steppers.dir_invert.mask;
 
     BITBAND_PERI(X_DIRECTION_PORT->PIO_ODSR, X_DIRECTION_PIN) = dir_outbits.x;
     BITBAND_PERI(Y_DIRECTION_PORT->PIO_ODSR, Y_DIRECTION_PIN) = dir_outbits.y;
@@ -1474,7 +1474,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220325";
+	hal.driver_version = "220411";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
