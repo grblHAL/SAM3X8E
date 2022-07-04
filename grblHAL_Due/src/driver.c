@@ -782,7 +782,7 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
 {
     if (pwm_value == spindle_pwm.off_value) {
         pwmEnabled = false;
-        if(settings.spindle.flags.pwm_action == SpindleAction_DisableWithZeroSPeed)
+        if(settings.spindle.flags.enable_rpm_controlled)
             spindle_off();
         if(spindle_pwm.always_on) {
             SPINDLE_PWM_TIMER.TC_RA = spindle_pwm.period - spindle_pwm.off_value;
@@ -809,13 +809,18 @@ static uint_fast16_t spindleGetPWM (float rpm)
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_state_t state, float rpm)
 {
-    if (!state.on || rpm == 0.0f) {
-        spindle_set_speed(spindle_pwm.off_value);
-        spindle_off();
-    } else {
+#ifdef SPINDLE_DIRECTION_PIN
+    if (state.on)
         spindle_dir(state.ccw);
-        spindle_set_speed(spindle_compute_pwm_value(&spindle_pwm, rpm, false));
+#endif
+    if(!settings.spindle.flags.enable_rpm_controlled) {
+        if (state.on)
+            spindle_on();
+        else
+            spindle_off();
     }
+
+    spindle_set_speed(state.on ? spindle_compute_pwm_value(&spindle_pwm, rpm, false) : spindle_pwm.off_value);
 }
 
 // Returns spindle state in a spindle_state_t variable
@@ -837,11 +842,16 @@ static spindle_state_t spindleGetState (void)
 
 bool spindleConfig (void)
 {
-    if((hal.spindle.cap.variable = spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer))) {
+    if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer))) {
         SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
         hal.spindle.set_state = spindleSetStateVariable;
-    } else
+    } else {
+        if(pwmEnabled)
+            hal.spindle.set_state((spindle_state_t){0}, 0.0f);
         hal.spindle.set_state = spindleSetState;
+    }
+
+    spindle_update_caps(hal.spindle.cap.variable);
 
     return true;
 }
@@ -1474,7 +1484,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220411";
+	hal.driver_version = "220703";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
