@@ -995,8 +995,6 @@ void settings_changed (settings_t *settings)
 {
     if(IOInitDone) {
 
-        stepperEnable(settings->steppers.deenergize);
-
 #ifdef SQUARING_ENABLED
         hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
@@ -1484,7 +1482,7 @@ bool driver_init (void)
     NVIC_EnableIRQ(SysTick_IRQn);
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220703";
+	hal.driver_version = "220710";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
