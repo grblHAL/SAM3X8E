@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -140,6 +140,10 @@ void IRQUnRegister(int32_t IRQnum);
 #error Keypad plugin not supported!
 #elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PORT)
 #error I2C strobe not supported!
+#endif
+
+#if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
+#error "MPG_MODE_PIN must be defined!"
 #endif
 
 typedef struct {

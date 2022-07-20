@@ -53,6 +53,10 @@
 #include "i2c.h"
 #endif
 
+#if KEYPAD_ENABLE == 2
+#include "keypad/keypad.h"
+#endif
+
 #define DEBOUNCE_QUEUE 8 // Must be a power of 2
 
 #ifndef OUTPUT
@@ -92,6 +96,10 @@ static void spindle_set_speed (uint_fast16_t pwm_value);
 
 #endif
 
+#ifdef MPG_MODE_PIN
+static input_signal_t *mpg_pin;
+#endif
+
 static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
@@ -109,6 +117,9 @@ static input_signal_t inputpin[] = {
   #endif
   #ifdef SAFETY_DOOR_PIN
     { .id = Input_SafetyDoor,   .port = SAFETY_DOOR_PORT,  .pin = SAFETY_DOOR_PIN,   .group = PinGroup_Control },
+  #endif
+  #ifdef MPG_MODE_PIN
+    { .id = Input_MPGSelect,    .port = MPG_MODE_PORT,     .pin = MPG_MODE_PIN,      .group = PinGroup_MPG },
   #endif
     { .id = Input_LimitX,       .port = X_LIMIT_PORT,      .pin = X_LIMIT_PIN,       .group = PinGroup_Limit },
   #ifdef X2_LIMIT_PIN
@@ -925,6 +936,25 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
     return prev;
 }
 
+#if MPG_MODE == 1
+
+static void mpg_select (sys_state_t state)
+{
+    stream_mpg_enable(BITBAND_PERI(MPG_MODE_PORT->PIO_ODSR, MPG_MODE_PIN) == 0);
+
+    PIO_EnableInterrupt(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+}
+
+static void mpg_enable (sys_state_t state)
+{
+    if(sys.mpg_mode == BITBAND_PERI(MPG_MODE_PORT->PIO_ODSR, MPG_MODE_PIN))
+        stream_mpg_enable(true);
+
+    PIO_EnableInterrupt(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+}
+
+#endif
+
 static void PIO_Mode (Pio *port, uint32_t bit, bool mode)
 {
     port->PIO_WPMR = PIO_WPMR_WPKEY(0x50494F);
@@ -1043,7 +1073,7 @@ void settings_changed (settings_t *settings)
 
             pullup = false;
             input->bit = 1U << input->pin;
-            if(input->group != PinGroup_AuxInput)
+            if(!(input->group == PinGroup_AuxInput || input->group == PinGroup_MPG))
                 input->irq_mode = IRQ_Mode_None;
 
             if(input->port != NULL) {
@@ -1095,7 +1125,6 @@ void settings_changed (settings_t *settings)
                         input->irq_mode = limit_fei.z ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
 
-
                     case Input_LimitA:
                     case Input_LimitA_Max:
                         pullup = !settings->limits.disable_pullup.a;
@@ -1118,7 +1147,11 @@ void settings_changed (settings_t *settings)
                         pullup = true;
                         input->irq_mode = IRQ_Mode_Change;
                         break;
-
+#ifdef MPG_MODE_PIN
+                    case Input_MPGSelect:
+                        pullup = true;
+                        break;
+#endif
                     default:
                         break;
                 }
@@ -1481,8 +1514,22 @@ bool driver_init (void)
 //    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     NVIC_EnableIRQ(SysTick_IRQn);
 
+#ifdef MPG_MODE_PIN
+    // Pull down MPG mode pin until startup is completed.
+    uint32_t i = 0;
+    while(mpg_pin == NULL) {
+        if(inputpin[i].id == Input_ModeSelect) {
+            mpg_pin = &inputpin[i];
+            mpg_pin->bit = 1U << mpg_pin->pin;
+            PIO_Mode(mpg_pin->port, mpg_pin->bit, OUTPUT);
+            BITBAND_PERI(MPG_MODE_PORT->PIO_ODSR, MPG_MODE_PIN) = 0;
+        }
+        i++;
+    }
+#endif
+
     hal.info = "SAM3X8E";
-	hal.driver_version = "220710";
+	hal.driver_version = "220720";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1555,6 +1602,22 @@ bool driver_init (void)
         hal.nvs.type = NVS_None;
 #endif
 
+    serialRegisterStreams();
+
+#if MPG_MODE == 1
+  #if KEYPAD_ENABLE == 2
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
+        protocol_enqueue_rt_command(mpg_enable);
+  #else
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
+        protocol_enqueue_rt_command(mpg_enable);
+  #endif
+#elif MPG_MODE == 2
+    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode);
+#elif KEYPAD_ENABLE == 2
+    stream_open_instance(KEYPAD_STREAM, 115200, keypad_enqueue_keycode);
+#endif
+
 #ifdef PWM_SPINDLE
 
     static const spindle_ptrs_t spindle = {
@@ -1593,7 +1656,6 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
-    uint32_t i;
     input_signal_t *input;
     output_signal_t *output;
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
@@ -1729,14 +1791,21 @@ inline static void PIO_IRQHandler (input_signal_t *signals, uint32_t isr)
                 signals[i].port->PIO_IDR = signals[i].bit;
                 debounce = true;
             } else switch(signals[i].group) {
-
+#ifdef HAS_IOPORTS
                 case PinGroup_AuxInput:
                     ioports_event(&signals[i]);
                     break;
+#endif
 #if I2C_STROBE_ENABLE
                 case PinGroup_Keypad:
                     if(i2c_strobe.callback)
                         i2c_strobe.callback(0, !BITBAND_PERI(I2C_STROBE_PORT->PIO_PDSR, I2C_STROBE_PIN));
+                    break;
+#endif
+#if MPG_MODE == 1
+                case PinGroup_MPG:
+                    PIO_EnableInterrupt(&inputpin[i], IRQ_Mode_None);
+                    protocol_enqueue_rt_command(mpg_select);
                     break;
 #endif
                 default:
