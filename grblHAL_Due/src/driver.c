@@ -1489,6 +1489,8 @@ bool nvsInit (void)
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
 {
+    uint32_t i = 0;
+
     WDT_Disable (WDT);
 
     // Enable EEPROM and serial port here for Grbl to be able to configure itself and report any errors
@@ -1516,7 +1518,6 @@ bool driver_init (void)
 
 #ifdef MPG_MODE_PIN
     // Pull down MPG mode pin until startup is completed.
-    uint32_t i = 0;
     while(mpg_pin == NULL) {
         if(inputpin[i].id == Input_ModeSelect) {
             mpg_pin = &inputpin[i];
@@ -1529,7 +1530,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220720";
+	hal.driver_version = "220725";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
