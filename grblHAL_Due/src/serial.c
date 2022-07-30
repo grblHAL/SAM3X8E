@@ -238,6 +238,23 @@ static bool serialSetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+static bool serialDisable (bool disable)
+{
+#if SERIAL_DEVICE < 0
+    if(disable)
+        SERIAL_PERIPH->UART_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+    else
+        SERIAL_PERIPH->UART_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+#else
+    if(disable)
+        SERIAL_PERIPH->US_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+    else
+        SERIAL_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+#endif
+
+    return true;
+}
+
 static bool serialEnqueueRtCommand (char c)
 {
     return enqueue_realtime_command(c);
@@ -265,6 +282,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .get_rx_buffer_free = serialRxFree,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
+        .disable_rx = serialDisable,
         .suspend_read = serialSuspendInput,
         .set_baud_rate = serialSetBaudRate,
         .set_enqueue_rt_handler = serialSetRtHandler
@@ -281,7 +299,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 #if SERIAL_DEVICE >= 0
     SERIAL_PORT->PIO_WPMR = 0x50494F;
     SERIAL_PORT->PIO_PDR  = (1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
-    SERIAL_PORT->PIO_OER  = (1<<SERIAL_TX);
+    SERIAL_PORT->PIO_OER  = (1<<SERIAL_TX_PIN);
     SERIAL_PORT->PIO_ABSR &= ~(1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
 #endif
 
@@ -540,6 +558,21 @@ static bool serial2SetBaudRate (uint32_t baud_rate)
     return true;
 }
 
+static bool serial2Disable (bool disable)
+{
+#if SERIAL2_DEVICE < 0
+    if(disable)
+        SERIAL2_PERIPH->UART_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+    else
+        SERIA2L_PERIPH->UART_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+#else
+    if(disable)
+        SERIAL2_PERIPH->US_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+    else
+        SERIAL2_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+#endif
+    return true;
+}
 
 static bool serial2EnqueueRtCommand (char c)
 {
@@ -573,6 +606,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
         .reset_write_buffer = serial2TxFlush,
         .reset_read_buffer = serial2RxFlush,
         .cancel_read_buffer = serial2RxCancel,
+        .disable_rx = serial2Disable,
     //    .suspend_read = serial2SuspendInput,
         .set_baud_rate = serial2SetBaudRate,
         .set_enqueue_rt_handler = serial2SetRtHandler
