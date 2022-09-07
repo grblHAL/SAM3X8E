@@ -25,7 +25,7 @@
 #include "driver.h"
 #include "serial.h"
 
-#include "grbl/limits.h"
+#include "grbl/machine_limits.h"
 #include "grbl/crossbar.h"
 #include "grbl/motor_pins.h"
 #include "grbl/protocol.h"
@@ -1219,7 +1219,7 @@ static char *port2char(Pio *port)
     return s;
 }
 
-static void enumeratePins (bool low_level, pin_info_ptr pin_info)
+static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
 {
     static xbar_t pin = {0};
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
@@ -1234,7 +1234,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.description = inputpin[i].description;
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     pin.mode.mask = 0;
@@ -1247,7 +1247,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.port = low_level ? (void *)outputpin[i].port : (void *)port2char(outputpin[i].port);
         pin.description = outputpin[i].description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     periph_signal_t *ppin = periph_pins;
@@ -1260,7 +1260,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.mode = ppin->pin.mode;
         pin.description = ppin->pin.description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
 
         ppin = ppin->next;
     } while(ppin);
@@ -1530,7 +1530,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "220725";
+	hal.driver_version = "2200907";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -1696,7 +1696,7 @@ bool driver_init (void)
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
-    return hal.version == 9;
+    return hal.version == 10;
 }
 
 /* interrupt handlers */
