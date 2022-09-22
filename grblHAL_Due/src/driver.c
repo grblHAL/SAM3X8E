@@ -862,7 +862,7 @@ bool spindleConfig (void)
         hal.spindle.set_state = spindleSetState;
     }
 
-    spindle_update_caps(hal.spindle.cap.variable);
+    spindle_update_caps(hal.spindle.cap.variable ? &spindle_pwm : NULL);
 
     return true;
 }
@@ -1530,7 +1530,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "2200907";
+	hal.driver_version = "2200922";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
