@@ -24,6 +24,7 @@
 // NOTE: Only one board may be enabled!
 //#define BOARD_TINYG2_DUE
 #define BOARD_RAMPS_16
+//#define BOARD_RAMPS_SMART
 //#define BOARD_MEGA256
 //#define BOARD_PROTONEER
 //#define BOARD_CMCGRATH

@@ -73,6 +73,8 @@ void IRQUnRegister(int32_t IRQnum);
     #include "tinyg2_due_map.h"
 #elif defined(BOARD_RAMPS_16)
     #include "ramps_1.6_map.h"
+#elif defined(BOARD_RAMPS_SMART)
+    #include "ramps_smart_map.h"
 #elif defined(BOARD_CMCGRATH)
     #include "cmcgrath_rev3_map.h"
 #elif defined(BOARD_MEGA256)
