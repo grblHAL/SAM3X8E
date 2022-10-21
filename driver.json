@@ -1,0 +1,111 @@
+{
+  "caps":
+  {
+    "axes": 6,
+    "usb_cdc": 1,
+    "uart": 1,
+    "serial_ports": 2,
+    "eeprom": 1,
+    "ganged_axes": 1,
+    "auto_square": 1,
+    "digital_in": 3,
+    "digital_out": 3,
+    "safety_door": 1,
+    "estop": 1,
+    "mpg_mode": 1,
+    "pio_board": "due",
+    "build_dir": "grblHAL_Due",
+    "plugins": [
+      { "id": "spindle" },
+      { "id": "modbus" },
+      { "id": "eeprom" },
+      { "id": "keypad" },
+      { "id": "plasma" },
+      { "id": "openpnp" },
+      { "id": "bluetooth" }
+    ]
+  },
+  "boards": [
+    {
+      "name": "cmcgrath v3",
+      "symbol": "BOARD_CMCGRATH",
+      "URL": "https://github.com/cmcgrath5035/G2core-DUE-External-Interfaces",
+      "caps": {
+        "axes": 3,
+        "digital_in": 0,
+        "digital_out": 3,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 0
+      }
+    },
+    {
+      "name": "Tinyg Due",
+      "symbol": "BOARD_TINYG2_DUE",
+      "URL": "https://github.com/synthetos/TinyG",
+      "caps": {
+        "axes": 6,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 0
+      }
+    },
+    { "name": "Ramps 1.6",
+      "symbol": "BOARD_RAMPS_16",
+      "URL": "https://reprap.world/electronics/development_boards/radds_v1_6_pre_assembled_3d_printer_board/",
+      "caps": {
+        "axes": 5,
+        "digital_in": 3,
+        "digital_out": 3,
+        "eeprom": 0,
+        "fram": 0
+      }
+    },
+    { "name": "Ramps SMART",
+      "symbol": "BOARD_RAMPS_SMART",
+      "URL": "https://reprap.org/wiki/SMART_RAMPS",
+      "caps": {
+        "axes": 5,
+        "digital_in": 3,
+        "digital_out": 3,
+        "eeprom": 1,
+        "fram": 0
+      }
+    },
+    { "name": "Mega 2560",
+      "symbol": "BOARD_MEGA256",
+      "URL": "",
+      "caps": {
+        "axes": 3,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0
+      }
+    },
+    { "name": "Protoneer v3",
+      "symbol": "BOARD_PROTONEER",
+      "URL": "https://blog.protoneer.co.nz/arduino-cnc-shield/",
+      "caps": {
+        "axes": 3,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0
+      }
+    },
+    { "name": "Radds 1.6",
+      "symbol": "BOARD_RADDS_16",
+      "URL": "",
+      "caps": {
+        "axes": 5,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0
+      }
+    }
+  ]
+}

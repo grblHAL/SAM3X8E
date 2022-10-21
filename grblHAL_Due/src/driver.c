@@ -87,12 +87,13 @@ static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 
 #if (!VFD_SPINDLE || N_SPINDLE > 1) && defined(SPINDLE_ENABLE_PIN)
 
-#define PWM_SPINDLE
+#define DRIVER_SPINDLE
 
+#ifdef SPINDLE_PWM_PIN
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm = {0};
-
 static void spindle_set_speed (uint_fast16_t pwm_value);
+#endif
 
 #endif
 
@@ -250,14 +251,14 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnableC,  .port = C_ENABLE_PORT,              .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
 #endif
-#ifdef PWM_SPINDLE
+#ifdef DRIVER_SPINDLE
 #ifdef SPINDLE_ENABLE_PIN
     { .id = Output_SpindleOn,       .port = SPINDLE_ENABLE_PORT,        .pin = SPINDLE_ENABLE_PIN,      .group = PinGroup_SpindleControl },
 #endif
 #ifdef SPINDLE_DIRECTION_PIN
     { .id = Output_SpindleDir,      .port = SPINDLE_DIRECTION_PORT,     .pin = SPINDLE_DIRECTION_PIN,   .group = PinGroup_SpindleControl },
 #endif
-#endif // PWM_SPINDLE
+#endif // DRIVER_SPINDLE
 #ifdef COOLANT_FLOOD_PIN
     { .id = Output_CoolantFlood,    .port = COOLANT_FLOOD_PORT,         .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
 #endif
@@ -752,7 +753,7 @@ probe_state_t probeGetState (void)
 
 #endif
 
-#ifdef PWM_SPINDLE
+#ifdef DRIVER_SPINDLE
 
 // Static spindle (off, on cw & on ccw)
 
@@ -787,6 +788,8 @@ static void spindleSetState (spindle_state_t state, float rpm)
 }
 
 // Variable spindle control functions
+
+#ifdef SPINDLE_PWM_PIN
 
 // Sets spindle speed
 static void spindle_set_speed (uint_fast16_t pwm_value)
@@ -834,24 +837,7 @@ static void spindleSetStateVariable (spindle_state_t state, float rpm)
     spindle_set_speed(state.on ? spindle_compute_pwm_value(&spindle_pwm, rpm, false) : spindle_pwm.off_value);
 }
 
-// Returns spindle state in a spindle_state_t variable
-static spindle_state_t spindleGetState (void)
-{
-    spindle_state_t state = {settings.spindle.invert.mask};
-
-    state.on = BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) != 0;
-#ifdef SPINDLE_DIRECTION_PIN
-    state.ccw = BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) != 0;
-#endif
-
-    state.value ^= settings.spindle.invert.mask;
-    if(pwmEnabled)
-        state.on = On;
-
-    return state;
-}
-
-bool spindleConfig (void)
+static bool spindleConfig (void)
 {
     if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer))) {
         SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
@@ -867,9 +853,29 @@ bool spindleConfig (void)
     return true;
 }
 
-// end spindle code
+#endif // SPINDLE_PWM_PIN
 
+// Returns spindle state in a spindle_state_t variable
+static spindle_state_t spindleGetState (void)
+{
+    spindle_state_t state = {settings.spindle.invert.mask};
+
+    state.on = BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) != 0;
+#ifdef SPINDLE_DIRECTION_PIN
+    state.ccw = BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) != 0;
 #endif
+
+    state.value ^= settings.spindle.invert.mask;
+
+#ifdef SPINDLE_PWM_PIN
+    if(pwmEnabled)
+        state.on = On;
+#endif
+
+    return state;
+}
+
+#endif // DRIVER_SPINDLE
 
 #ifdef DEBUGOUT
 void debug_out (bool on)
@@ -1029,8 +1035,8 @@ void settings_changed (settings_t *settings)
         hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
 
-#ifdef PWM_SPINDLE
-        if(hal.spindle.get_state == spindleGetState)
+#ifdef SPINDLE_PWM_PIN
+        if(hal.spindle.config == spindleConfig)
             spindleConfig();
 #endif
 
@@ -1362,7 +1368,7 @@ static bool driver_setup (settings_t *settings)
         NVIC_EnableIRQ(DEBOUNCE_TIMER_IRQn);    // Enable debounce interrupt
     }
 
-#ifdef PWM_SPINDLE
+#ifdef DRIVER_SPINDLE
 
  // Spindle init
 
@@ -1390,7 +1396,7 @@ static bool driver_setup (settings_t *settings)
 
     hal.periph_port.register_pin(&pwm);
 
-#endif // PWM_SPINDLE
+#endif // DRIVER_SPINDLE
 
 #if TRINAMIC_ENABLE == 2130
     trinamic_start(true);
@@ -1530,10 +1536,15 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-	hal.driver_version = "2200922";
+    hal.driver_version = "221014";
+    hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
+#ifdef BOARD_URL
+    hal.board_url = BOARD_URL;
+#endif
+
     hal.driver_setup = driver_setup;
     hal.f_step_timer = SystemCoreClock / 2; // 42 MHz
     hal.rx_buffer_size = RX_BUFFER_SIZE;
@@ -1619,27 +1630,34 @@ bool driver_init (void)
     stream_open_instance(KEYPAD_STREAM, 115200, keypad_enqueue_keycode);
 #endif
 
-#ifdef PWM_SPINDLE
+#ifdef DRIVER_SPINDLE
 
     static const spindle_ptrs_t spindle = {
- #ifdef SPINDLE_DIRECTION_PIN
-        .cap.direction = On,
- #endif
- #ifdef SPINDLE_PWM_PIN
+  #ifdef SPINDLE_PWM_PIN
+        .type = SpindleType_PWM,
         .cap.laser = On,
         .cap.variable = On,
         .cap.pwm_invert = On,
+        .config = spindleConfig,
         .get_pwm = spindleGetPWM,
         .update_pwm = spindle_set_speed,
- #endif
-        .config = spindleConfig,
+  #else
+       .type = SpindleType_Basic,
+  #endif
+  #ifdef SPINDLE_DIRECTION_PIN
+       .cap.direction = On,
+  #endif
         .set_state = spindleSetState,
         .get_state = spindleGetState
     };
 
-    spindle_register(&spindle, "PWM");
+  #ifdef SPINDLE_PWM_PIN
+   spindle_register(&spindle, "PWM");
+  #else
+   spindle_register(&spindle, "Basic");
+  #endif
 
-#endif // PWM_SPINDLE
+#endif // DRIVER_SPINDLE
 
  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
@@ -1776,6 +1794,9 @@ static void DEBOUNCE_IRQHandler (void)
 
             case PinGroup_Control:
                 hal.control.interrupt_callback(systemGetState());
+                break;
+
+            default:
                 break;
         }
     }

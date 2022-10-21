@@ -38,6 +38,7 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.connected = On,
       .flags.can_set_baud = On,
+      .flags.modbus_ready = On,
       .claim = serialInit
     },
 #ifdef SERIAL2_DEVICE
@@ -64,7 +65,6 @@ void serialRegisterStreams (void)
     stream_register_streams(&streams);
 }
 
-/*
 //
 // Returns number of characters in serial output buffer
 //
@@ -73,9 +73,9 @@ static uint16_t serialTxCount (void)
     uint16_t tail = txbuf.tail;
 
 #if SERIAL_DEVICE == -1
-    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + (SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY) ? 0 : 1;
+    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY) ? 0 : 1);
 #else
-    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + (SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1;
+    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1);
 #endif
 }
 
@@ -88,7 +88,7 @@ static uint16_t serialRxCount (void)
 
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
-*/
+
 //
 // Returns number of free characters in serial input buffer
 //
@@ -171,15 +171,6 @@ static void serialWriteS (const char *s)
     while((c = *ptr++) != '\0')
         serialPutC(c);
 }
-/*
-//
-// Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
-//
-static void serialWriteLn (const char *s)
-{
-    serialWriteS(s);
-    serialWriteS(ASCII_EOL);
-}
 
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
@@ -191,7 +182,7 @@ static void serialWrite (const char *s, uint16_t length)
     while(length--)
         serialPutC(*ptr++);
 }
-*/
+
 //
 // serialGetC - returns -1 if no data available
 //
@@ -277,8 +268,11 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .state.connected = true,
         .read = serialGetC,
         .write = serialWriteS,
+        .write_n =  serialWrite,
         .write_char = serialPutC,
         .enqueue_rt_command = serialEnqueueRtCommand,
+        .get_rx_buffer_count = serialRxCount,
+        .get_tx_buffer_count = serialTxCount,
         .get_rx_buffer_free = serialRxFree,
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
@@ -399,7 +393,7 @@ static uint16_t serial2TxCount (void)
 {
     uint16_t tail = tx2buf.tail;
 
-    return BUFCOUNT(tx2buf.head, tail, TX_BUFFER_SIZE) + (SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1;
+    return BUFCOUNT(tx2buf.head, tail, TX_BUFFER_SIZE) + ((SERIAL2_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1);
 }
 
 //
