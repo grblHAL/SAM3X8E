@@ -78,9 +78,11 @@ static axes_signals_t next_step_outbits;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static debounce_queue_t debounce_queue = {0};
 static input_signal_t a_signals[10] = {0}, b_signals[10] = {0}, c_signals[10] = {0}, d_signals[10] = {0};
+#ifdef PROBE_PIN
 static probe_state_t probe = {
     .connected = On
 };
+#endif
 #ifdef SQUARING_ENABLED
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 #endif
@@ -794,6 +796,31 @@ static void spindleSetState (spindle_state_t state, float rpm)
 // Sets spindle speed
 static void spindle_set_speed (uint_fast16_t pwm_value)
 {
+#ifdef SPINDLE_PWM_CHANNEL
+    if (pwm_value == spindle_pwm.off_value) {
+        pwmEnabled = false;
+        if(settings.spindle.flags.enable_rpm_controlled)
+            spindle_off();
+        if(spindle_pwm.always_on) {
+            if(PWM->PWM_SR & (1 << SPINDLE_PWM_CHANNEL))
+                PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTYUPD = spindle_pwm.off_value;
+            else {
+                PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTY = spindle_pwm.off_value;
+                REG_PWM_ENA = (1 << SPINDLE_PWM_CHANNEL);
+            }
+        } else
+            REG_PWM_DIS = (1 << SPINDLE_PWM_CHANNEL);
+    } else {
+        if(PWM->PWM_SR & (1 << SPINDLE_PWM_CHANNEL))
+            PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTYUPD = pwm_value;
+        else {
+            spindle_on();
+            pwmEnabled = true;
+            PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTY = pwm_value;
+            REG_PWM_ENA = (1 << SPINDLE_PWM_CHANNEL);
+        }
+    }
+#else
     if (pwm_value == spindle_pwm.off_value) {
         pwmEnabled = false;
         if(settings.spindle.flags.enable_rpm_controlled)
@@ -813,6 +840,7 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
             SPINDLE_PWM_TIMER.TC_CCR = TC_CCR_CLKEN|TC_CCR_SWTRG;
         }
     }
+#endif
 }
 
 static uint_fast16_t spindleGetPWM (float rpm)
@@ -840,7 +868,11 @@ static void spindleSetStateVariable (spindle_state_t state, float rpm)
 static bool spindleConfig (void)
 {
     if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer))) {
+#ifdef SPINDLE_PWM_CHANNEL
+        PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CPRD = spindle_pwm.period;
+#else
         SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
+#endif
         hal.spindle.set_state = spindleSetStateVariable;
     } else {
         if(pwmEnabled)
@@ -1377,10 +1409,9 @@ static bool driver_setup (settings_t *settings)
     SPINDLE_PWM_PORT->PIO_PDR = (1 << SPINDLE_PWM_PIN);
 
 #ifdef SPINDLE_PWM_CHANNEL
-#error "Spindle PWM to be completed for this board!"
-//    PWM->PWM_CLK = ;
-//    PWM->PWM_ENA |= (1 << SPINDLE_PWM_CHANNEL);
-//    PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CPRD = ;
+    REG_PMC_PCER1 |= PMC_PCER1_PID36;
+    REG_PWM_CLK = PWM_CLK_PREA(1) | PWM_CLK_DIVA(1);
+    PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CMR = PWM_CMR_CPRE_CLKA;
 #else
     SPINDLE_PWM_TIMER.TC_CCR = TC_CCR_CLKDIS;
     SPINDLE_PWM_TIMER.TC_CMR = TC_CMR_WAVE|TC_CMR_WAVSEL_UP_RC|TC_CMR_ASWTRG_CLEAR|TC_CMR_ACPA_SET|TC_CMR_ACPC_CLEAR; //|TC_CMR_EEVT_XC0;
@@ -1536,7 +1567,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "221022";
+    hal.driver_version = "221031";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

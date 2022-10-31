@@ -270,7 +270,9 @@ const io_stream_t *usb_serialInit(void)
         .cancel_read_buffer = usb_serialRxCancel,
         .set_enqueue_rt_handler = usbSetRtHandler,
         .suspend_read = usb_serialSuspendInput,
-        .write_n = usb_serialWrite
+        .write_n = usb_serialWrite,
+        .disable_rx = NULL,
+        .get_rx_buffer_count = usb_serialRxCount
     };
 
     txbuf.s = txbuf.data;
