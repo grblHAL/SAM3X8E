@@ -283,8 +283,6 @@ static output_signal_t outputpin[] = {
 
 static uint32_t vectorTable[sizeof(DeviceVectors) / sizeof(uint32_t)] __attribute__(( aligned (0x100ul) ));
 
-static void spindle_set_speed (uint_fast16_t pwm_value);
-
 static void SysTick_IRQHandler (void);
 static void STEPPER_IRQHandler (void);
 static void STEP_IRQHandler (void);

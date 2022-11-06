@@ -492,15 +492,6 @@ static void serial2WriteS (const char *s)
 }
 
 //
-// Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
-//
-static void serial2WriteLn (const char *s)
-{
-    serial2WriteS(s);
-    serial2WriteS(ASCII_EOL);
-}
-
-//
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
 static void serial2Write (const char *s, uint16_t length)
