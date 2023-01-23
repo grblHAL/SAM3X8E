@@ -10,7 +10,7 @@ Uncomment `#define BOARD_RAMPS16` in [driver.h](../main/driver.h) to use this ma
                                       NOT USED [  ]         [  ] AREF
                                          IOREF [  ]         [  ] GND
                                          RESET [  ]    A    [13] B.27
-                                           3V3 [  ]    R    [12] D.08
+                                           3V3 [  ]    R    [12] D.08 - Probe input
                                             5V [  ]    D    [11] D.07
                                            GND [  ]    U    [10] C.29/A.28
                                            GND [  ]    I    [09] C.21
@@ -55,4 +55,4 @@ C.07 -----------------------------------------------+     + --------------------
 
 ```
 ---
-2022-08-24
+2023-01-24

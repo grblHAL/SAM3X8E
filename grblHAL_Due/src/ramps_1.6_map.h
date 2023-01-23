@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Mappings according to Re-ARM for NXP LPC1768
 
@@ -28,6 +28,7 @@
 #endif
 
 #define BOARD_NAME "Ramps 1.6"
+#define BOARD_URL "https://github.com/bigtreetech/ramps-1.6"
 #define HAS_IOPORTS
 
  // Define step pulse output pins.
@@ -136,6 +137,10 @@
 #define FEED_HOLD_PIN       4   // DUE Analog Pin 4
 #define CYCLE_START_PORT    PIOA
 #define CYCLE_START_PIN     6   // DUE Analog Pin 5
+
+// Define probe switch input pin.
+#define PROBE_PORT          PIOD
+#define PROBE_PIN           8  // Due Digital Pin 12
 
 #ifdef HAS_IOPORTS
 
