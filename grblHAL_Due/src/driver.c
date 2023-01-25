@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2022 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1433,7 +1433,7 @@ static bool driver_setup (settings_t *settings)
 
  // Set defaults
 
-    IOInitDone = settings->version == 21;
+    IOInitDone = settings->version == 22;
 
     hal.settings_changed(settings);
 
@@ -1542,14 +1542,17 @@ bool driver_init (void)
 
     // End vector table copy
 
-    SysTick->LOAD = (SystemCoreClock / 1000) - 1;
-    SysTick->VAL = 0;
-    SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk|SysTick_CTRL_TICKINT_Msk;
-
+    SysTick_Config((SystemCoreClock / 1000));
     IRQRegister(SysTick_IRQn, SysTick_IRQHandler);
 
+    /*
+    SysTick->LOAD = (SystemCoreClock / 1000) - 1;
+    SysTick->VAL = 0;
+    SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk|SysTick_CTRL_TICKINT_Msk|SysTick_CTRL_ENABLE_Msk;
+
 //    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
-    NVIC_EnableIRQ(SysTick_IRQn);
+//    NVIC_EnableIRQ(SysTick_IRQn);
+*/
 
 #ifdef MPG_MODE_PIN
     // Pull down MPG mode pin until startup is completed.
@@ -1565,7 +1568,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "221031";
+    hal.driver_version = "230125";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

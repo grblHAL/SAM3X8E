@@ -139,8 +139,8 @@
 #define CYCLE_START_PIN     6   // DUE Analog Pin 5
 
 // Define probe switch input pin.
-#define PROBE_PORT          PIOD
-#define PROBE_PIN           8  // Due Digital Pin 12
+#define PROBE_PORT         	PIOB
+#define PROBE_PIN        	13  // Due Digital Pin 21
 
 #ifdef HAS_IOPORTS
 
