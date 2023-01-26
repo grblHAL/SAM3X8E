@@ -21,6 +21,7 @@
       { "id": "modbus" },
       { "id": "eeprom" },
       { "id": "keypad" },
+      { "id": "macros" },
       { "id": "plasma" },
       { "id": "openpnp" },
       { "id": "bluetooth_bridge" }
