@@ -87,12 +87,13 @@ static probe_state_t probe = {
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 #endif
 
-#if (!VFD_SPINDLE || N_SPINDLE > 1) && defined(SPINDLE_ENABLE_PIN)
+#if DRIVER_SPINDLE_ENABLE && defined(SPINDLE_ENABLE_PIN)
 
 #define DRIVER_SPINDLE
 
 #ifdef SPINDLE_PWM_PIN
 static bool pwmEnabled = false;
+static spindle_id_t spindle_id = -1;
 static spindle_pwm_t spindle_pwm = {0};
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
@@ -863,22 +864,25 @@ static void spindleSetStateVariable (spindle_state_t state, float rpm)
     spindle_set_speed(state.on ? spindle_compute_pwm_value(&spindle_pwm, rpm, false) : spindle_pwm.off_value);
 }
 
-static bool spindleConfig (void)
+bool spindleConfig (spindle_ptrs_t *spindle)
 {
-    if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, hal.f_step_timer))) {
+    if(spindle == NULL)
+        return false;
+
+    if((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, hal.f_step_timer))) {
 #ifdef SPINDLE_PWM_CHANNEL
         PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CPRD = spindle_pwm.period;
 #else
         SPINDLE_PWM_TIMER.TC_RC = spindle_pwm.period;
 #endif
-        hal.spindle.set_state = spindleSetStateVariable;
+        spindle->set_state = spindleSetStateVariable;
     } else {
         if(pwmEnabled)
-            hal.spindle.set_state((spindle_state_t){0}, 0.0f);
-        hal.spindle.set_state = spindleSetState;
+            spindle->set_state((spindle_state_t){0}, 0.0f);
+        spindle->set_state = spindleSetState;
     }
 
-    spindle_update_caps(hal.spindle.cap.variable ? &spindle_pwm : NULL);
+    spindle_update_caps(spindle, spindle->cap.variable ? &spindle_pwm : NULL);
 
     return true;
 }
@@ -1057,7 +1061,7 @@ static inline void PIO_InputMode (Pio *port, uint32_t bit, bool no_pullup)
 }
 
 // Configures perhipherals when settings are initialized or changed
-void settings_changed (settings_t *settings)
+void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
     if(IOInitDone) {
 
@@ -1066,8 +1070,11 @@ void settings_changed (settings_t *settings)
 #endif
 
 #if defined(DRIVER_SPINDLE) && defined(SPINDLE_PWM_PIN)
-        if(hal.spindle.config == spindleConfig)
-            spindleConfig();
+        if(changed.spindle) {
+            spindleConfig(spindle_get_hal(spindle_id, SpindleHAL_Configured));
+            if(spindle_id == spindle_get_default())
+                spindle_select(spindle_id);
+        }
 #endif
 
         pulse_length = (uint32_t)(42.0f * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY)) - 1;
@@ -1435,7 +1442,7 @@ static bool driver_setup (settings_t *settings)
 
     IOInitDone = settings->version == 22;
 
-    hal.settings_changed(settings);
+    hal.settings_changed(settings, (settings_changed_flags_t){0});
 
     hal.stepper.go_idle(true);
 
@@ -1568,7 +1575,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "230125";
+    hal.driver_version = "230130";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1684,9 +1691,9 @@ bool driver_init (void)
     };
 
   #ifdef SPINDLE_PWM_PIN
-   spindle_register(&spindle, "PWM");
+    spindle_id = spindle_register(&spindle, "PWM");
   #else
-   spindle_register(&spindle, "Basic");
+    spindle_id = spindle_register(&spindle, "Basic");
   #endif
 
 #endif // DRIVER_SPINDLE
