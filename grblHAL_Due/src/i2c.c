@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,9 +53,7 @@ typedef struct {
     uint16_t count;
     uint8_t *data;
     uint8_t regaddr[2];
-#if KEYPAD_ENABLE == 1
     keycode_callback_ptr keycode_callback;
-#endif
     uint8_t buffer[8];
 } i2c_trans_t;
 
@@ -130,7 +128,7 @@ uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
     return i2c.buffer;
 }
 
-void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.count = bytes ? bytes - 1 : 0;
     i2c.data  = buf ? buf : i2c.buffer;
@@ -142,6 +140,8 @@ void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 
     if(block)
         while(i2cIsBusy);
+
+    return true;
 }
 
 uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
@@ -192,7 +192,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             txbuf[0] = transfer->word_addr >> 8;
             txbuf[1] = transfer->word_addr & 0xFF;
         }
-        I2C_Send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
+        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
 #if !EEPROM_IS_FRAM
         hal.delay_ms(5, NULL);
 #endif
@@ -203,9 +203,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE == 1
-
-void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
+void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
 {
     while(i2cIsBusy);
 
@@ -213,8 +211,6 @@ void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
 
     I2C_Receive(i2cAddr, NULL, 1, false);
 }
-
-#endif
 
 #if TRINAMIC_ENABLE == 2130 && TRINAMIC_I2C
 
@@ -263,7 +259,7 @@ static TMC2130_status_t I2C_TMC_WriteRegister (TMC2130_t *driver, TMC2130_datagr
     i2c.buffer[3] = (reg->payload.value >> 8) & 0xFF;
     i2c.buffer[4] = reg->payload.value & 0xFF;
 
-    I2C_Send(I2C_ADR_I2CBRIDGE, NULL, 5, true);
+    i2c_send(I2C_ADR_I2CBRIDGE, NULL, 5, true);
 
     return status;
 }
