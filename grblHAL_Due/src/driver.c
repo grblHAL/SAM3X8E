@@ -1575,7 +1575,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "230130";
+    hal.driver_version = "230331";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1703,7 +1703,7 @@ bool driver_init (void)
 #ifdef SAFETY_DOOR_PIN
     hal.signals_cap.safety_door_ajar = On;
 #endif
-
+    hal.limits_cap = get_limits_cap();
 #ifdef COOLANT_MIST_PIN
     hal.driver_cap.mist_control = On;
 #endif
