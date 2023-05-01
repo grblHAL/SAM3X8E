@@ -32,6 +32,7 @@
       "name": "cmcgrath v3",
       "symbol": "BOARD_CMCGRATH",
       "URL": "https://github.com/cmcgrath5035/G2core-DUE-External-Interfaces",
+      "MAP": "grblHAL_Due/src/cmcgrath_rev3_map.h",
       "caps": {
         "axes": 3,
         "digital_in": 0,
@@ -45,6 +46,7 @@
       "name": "Tinyg Due",
       "symbol": "BOARD_TINYG2_DUE",
       "URL": "https://github.com/synthetos/TinyG",
+      "MAP": "grblHAL_Due/src/tinyg2_due_map.h",
       "caps": {
         "axes": 6,
         "digital_in": 0,
@@ -57,6 +59,7 @@
     { "name": "Ramps 1.6",
       "symbol": "BOARD_RAMPS_16",
       "URL": "https://reprap.world/electronics/development_boards/radds_v1_6_pre_assembled_3d_printer_board/",
+      "MAP": "grblHAL_Due/src/ramps_1.6_map.h",
       "caps": {
         "axes": 5,
         "digital_in": 3,
@@ -68,6 +71,7 @@
     { "name": "Ramps SMART",
       "symbol": "BOARD_RAMPS_SMART",
       "URL": "https://reprap.org/wiki/SMART_RAMPS",
+      "MAP": "grblHAL_Due/src/ramps_smart_map.h",
       "caps": {
         "axes": 5,
         "digital_in": 3,
@@ -79,6 +83,7 @@
     { "name": "Mega 2560",
       "symbol": "BOARD_MEGA256",
       "URL": "",
+      "MAP": "grblHAL_Due/src/mega_2560_map.h",
       "caps": {
         "axes": 3,
         "digital_in": 0,
@@ -90,6 +95,7 @@
     { "name": "Protoneer v3",
       "symbol": "BOARD_PROTONEER",
       "URL": "https://blog.protoneer.co.nz/arduino-cnc-shield/",
+      "MAP": "grblHAL_Due/src/protoneer_3.xx_map.h",
       "caps": {
         "axes": 3,
         "digital_in": 0,
@@ -101,6 +107,7 @@
     { "name": "Radds 1.6",
       "symbol": "BOARD_RADDS_16",
       "URL": "",
+      "MAP": "grblHAL_Due/src/radds_1.6_map.h",
       "caps": {
         "axes": 5,
         "digital_in": 0,
