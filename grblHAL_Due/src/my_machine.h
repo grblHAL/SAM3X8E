@@ -23,7 +23,7 @@
 // If none is enabled pin mappings from generic_map.h will be used
 // NOTE: Only one board may be enabled!
 //#define BOARD_TINYG2_DUE
-#define BOARD_RAMPS_16
+//#define BOARD_RAMPS_16
 //#define BOARD_RAMPS_SMART
 //#define BOARD_MEGA256
 //#define BOARD_PROTONEER
@@ -36,7 +36,7 @@
 
 //#define USB_SERIAL_CDC     1 // Use native USB port for communication.
 //#define SAFETY_DOOR_ENABLE 1 // Enable safety door input.
-//#define BLUETOOTH_ENABLE   1 // Set to 1 for HC-05 module. Requires and claims one auxillary input pin.
+//#define BLUETOOTH_ENABLE   2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
 //#define VFD_ENABLE         1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
 //#define MODBUS_ENABLE      1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define PLASMA_ENABLE      1 // Plasma/THC plugin.
