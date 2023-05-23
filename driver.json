@@ -14,6 +14,7 @@
     "safety_door": 1,
     "estop": 1,
     "mpg_mode": 1,
+    "hc05": 1,
     "pio_board": "due",
     "build_dir": "grblHAL_Due",
     "plugins": [
@@ -24,7 +25,7 @@
       { "id": "macros" },
       { "id": "plasma" },
       { "id": "openpnp" },
-      { "id": "bluetooth_bridge" }
+      { "id": "bluetooth" }
     ]
   },
   "boards": [
