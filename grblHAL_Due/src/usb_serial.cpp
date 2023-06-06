@@ -43,6 +43,11 @@ static stream_rx_buffer_t rxbuf;
 static on_execute_realtime_ptr on_execute_realtime = NULL;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
+static bool usb_isConnected (void)
+{
+    return SerialUSB;
+}
+
 //
 // Returns number of characters in serial input buffer
 //
@@ -260,7 +265,7 @@ const io_stream_t *usb_serialInit(void)
         .type = StreamType_Serial,
         .instance = 0,
         .state = { .is_usb = On },
-        .is_connected = NULL,
+        .is_connected = usb_isConnected,
         .get_rx_buffer_free = usb_serialRxFree,
         .write = usb_serialWriteS,
         .write_all = NULL,

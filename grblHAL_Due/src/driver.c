@@ -539,26 +539,6 @@ static void stepperEnable (axes_signals_t enable)
 #endif
 }
 
-// Resets and enables stepper driver ISR timer
-static void stepperWakeUp (void)
-{
-    stepperEnable((axes_signals_t){AXES_BITMASK});
-
-    STEPPER_TIMER.TC_RC = 1000;
-    STEPPER_TIMER.TC_CCR = TC_CCR_CLKEN|TC_CCR_SWTRG;
-}
-
-// Disables stepper driver interrupts
-static void stepperGoIdle (bool clear_signals)
-{
-    STEPPER_TIMER.TC_CCR = TC_CCR_CLKDIS;
-
-    if(clear_signals) {
-        set_step_outputs((axes_signals_t){0});
-        set_dir_outputs((axes_signals_t){0});
-    }
-}
-
 // Sets up stepper driver interrupt timeout, AMASS version
 static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 {
@@ -570,6 +550,24 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
     STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 23) ? cycles_per_tick : (1UL << 23) - 1UL;
 #endif
     STEPPER_TIMER.TC_CCR = TC_CCR_CLKEN|TC_CCR_SWTRG;
+}
+
+// Resets and enables stepper driver ISR timer
+static void stepperWakeUp (void)
+{
+    stepperEnable((axes_signals_t){AXES_BITMASK});
+    stepperCyclesPerTick(hal.f_step_timer / 500); // ~2ms delay to allow drivers time to wake up.
+}
+
+// Disables stepper driver interrupts
+static void stepperGoIdle (bool clear_signals)
+{
+    STEPPER_TIMER.TC_CCR = TC_CCR_CLKDIS;
+
+    if(clear_signals) {
+        set_step_outputs((axes_signals_t){0});
+        set_dir_outputs((axes_signals_t){0});
+    }
 }
 
 // Sets stepper direction and pulse pins and starts a step pulse.
@@ -1575,7 +1573,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "230331";
+    hal.driver_version = "230604";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
