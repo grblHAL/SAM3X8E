@@ -108,10 +108,6 @@ void IRQUnRegister(int32_t IRQnum);
 #include "tmc2130/trinamic.h"
 #endif
 
-#if MODBUS_ENABLE
-#include "spindle/modbus.h"
-#endif
-
 // Define I2C port/pins
 
 #if I2C_ENABLE == 1
