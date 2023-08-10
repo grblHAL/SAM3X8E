@@ -46,7 +46,7 @@
                                // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
 //#define KEYPAD_ENABLE      2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
                                // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
-//#define EEPROM_ENABLE      1 // I2C EEPROM support. Set to 1 for 24LC16 (2K), 3 for 24C32 (4K - 32 byte page) and 2 for other sizes. Uses eeprom plugin.
+//#define EEPROM_ENABLE     16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM     1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
 #ifndef USB_SERIAL_CDC
 #define SERIAL_DEVICE       -1 // Select serial device for output if not using native USB, default is -1, max value is 2
