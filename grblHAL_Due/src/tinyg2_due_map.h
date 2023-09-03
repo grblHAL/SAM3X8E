@@ -67,7 +67,6 @@
 #else
 #define X_LIMIT_PORT_MAX    PIOD
 #define X_LIMIT_PIN_MAX     5   // Due Digital Pin 15
-#define X_LIMIT_BIT_MAX     (1<<X_LIMIT_PIN_MAX)
 #endif
 #if Y_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOA
@@ -75,7 +74,6 @@
 #else
 #define Y_LIMIT_PORT_MAX    PIOA
 #define Y_LIMIT_PIN_MAX     12  // Due Digital Pin 17
-#define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
 #endif
 #if Z_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOA

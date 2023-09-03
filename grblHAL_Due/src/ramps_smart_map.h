@@ -97,7 +97,6 @@
 #else
 #define X_LIMIT_PORT_MAX    PIOB
 #define X_LIMIT_PIN_MAX     25  // Due D2 & Ramps X-MAX         //Correcting Ramps 1.6
-#define X_LIMIT_BIT_MAX     (1<<X_LIMIT_PIN_MAX)
 #endif
 #if Y_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOD
@@ -105,7 +104,6 @@
 #else
 #define Y_LIMIT_PORT_MAX    PIOD
 #define Y_LIMIT_PIN_MAX     5   // Due D15 & Ramps Y-MAX        //Correcting Ramps 1.6
-#define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
 #endif
 #if Z_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOA

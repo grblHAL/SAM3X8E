@@ -43,7 +43,6 @@
 #else
 #define X_LIMIT_PORT_MAX    PIOD
 #define X_LIMIT_PIN_MAX     5   // Due Digital Pin 15
-#define X_LIMIT_BIT_MAX     (1<<X_LIMIT_PIN_MAX)
 #endif
 
 #define Y_STEP_PORT         PIOC
@@ -60,7 +59,6 @@
 #else
 #define Y_LIMIT_PORT_MAX    PIOA
 #define Y_LIMIT_PIN_MAX     12  // Due Digital Pin 17
-#define Y_LIMIT_BIT_MAX     (1<<Y_LIMIT_PIN_MAX)
 #endif
 
 #define Z_STEP_PORT         PIOC
