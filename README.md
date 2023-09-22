@@ -2,7 +2,9 @@
 
 A grblHAL driver for the Atmel SAM3X8E processor on a [Arduino Due board](https://store.arduino.cc/arduino-due).
 
-See the Wiki-page for [compiling grblHAL](https://github.com/grblHAL/core/wiki/Compiling-GrblHAL) for instructions for how to import the project, configure the driver and compile.
+This driver can be built with the [Web Builder](http://svn.io-engineering.com:8080/?driver=SAM3X8E).
+
+For local builds see the Wiki-page for [compiling grblHAL](https://github.com/grblHAL/core/wiki/Compiling-GrblHAL) for instructions for how to import the project, configure the driver and compile.
 
 Available driver options can be found [here](grblHAL_Due/src/my_machine.h).
 
@@ -17,4 +19,4 @@ CNC breakout boards:
 [Arduino Due shield](https://github.com/itadinanta/cnc_mill_prototype/tree/master/arduino_duo_shield) by Nico Orr&ugrave;.
 
 ---
-2021-06-10
+2023-09-20
