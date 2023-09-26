@@ -45,10 +45,6 @@
 #include "eeprom/eeprom.h"
 #endif
 
-#if PLASMA_ENABLE
-#include "plasma/thc.h"
-#endif
-
 #if I2C_ENABLE
 #include "i2c.h"
 #endif
@@ -334,7 +330,7 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         callback();
 }
 
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
 
 static axes_signals_t pulse_output = {0};
 
@@ -356,7 +352,7 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 {
     axes_signals_t step_outbits_2;
 
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
     step_outbits_1.value |= pulse_output.value;
     pulse_output.value = 0;
 #endif
@@ -401,7 +397,7 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 
 inline static void __attribute__((always_inline)) set_step_outputs (axes_signals_t step_outbits)
 {
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
     step_outbits.value |= pulse_output.value;
     pulse_output.value = 0;
 #endif
@@ -1573,7 +1569,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "230828";
+    hal.driver_version = "230926";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1598,6 +1594,9 @@ bool driver_init (void)
 #endif
 #ifdef SQUARING_ENABLED
     hal.stepper.disable_motors = StepperDisableMotors;
+#endif
+#if STEP_INJECT_ENABLE
+    hal.stepper.output_step = stepperOutputStep;
 #endif
 
     hal.limits.enable = limitsEnable;
@@ -1625,6 +1624,7 @@ bool driver_init (void)
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
+    hal.get_micros = micros;
     hal.get_elapsed_ticks = millis;
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
@@ -1742,11 +1742,6 @@ bool driver_init (void)
 #endif
 
     serialRegisterStreams();
-
-#if PLASMA_ENABLE
-    hal.stepper.output_step = stepperOutputStep;
-    plasma_init();
-#endif
 
 #include "grbl/plugins_init.h"
 
