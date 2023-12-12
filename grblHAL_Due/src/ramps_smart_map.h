@@ -50,7 +50,6 @@
 #endif
 
 #define BOARD_NAME "Ramps SMART"
-#define HAS_IOPORTS
 
 // v1.4.1 and v1.4.2 has a 32kbit EEPROM mounted(?)
 // Uncomment the following lines to enable - NOTE: not tested!
@@ -135,20 +134,32 @@
 #define M4_ENABLE_PIN       9   // Due D30 & Ramps E1-EN                     //Correcting Ramps 1.6
 #endif
 
-#if VFD_SPINDLE == 0
+// Define driver spindle pins
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     PIOC
-#define SPINDLE_ENABLE_PIN      26  // Due D4 & Ramps D4 / SER4                             //Correcting Ramps 1.6
+#if DRIVER_SPINDLE_PWM_ENABLE
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])  // ???
+#define SPINDLE_PWM_CCREG       2                     // ???
+#define SPINDLE_PWM_PORT        PIOC
+#define SPINDLE_PWM_PIN         25  // Due D5 / TIOA6 / PWM5 & Ramps D5 / SER3              //Correcting Ramps 1.6
+#else
+#define AUXOUTPUT3_PORT         PIOC
+#define AUXOUTPUT3_PIN          25
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
 #define SPINDLE_DIRECTION_PORT  PIOC
 #define SPINDLE_DIRECTION_PIN   22  // Due D8 & Ramps D8 / P$2 (Mosfet Outputs)             //Correcting Ramps 1.6
+#else
+#define AUXOUTPUT4_PORT         PIOC
+#define AUXOUTPUT4_PIN          22
+#endif
 
-// Start of PWM & Stepper Enabled Spindle
-#define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[0])  // ???
-#define SPINDLE_PWM_CCREG   2                     // ???
-#define SPINDLE_PWM_PORT    PIOC
-#define SPINDLE_PWM_PIN     25  // Due D5 / TIOA6 / PWM5 & Ramps D5 / SER3                  //Correcting Ramps 1.6
-
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PORT     PIOC
+#define SPINDLE_ENABLE_PIN      26 // Due D4 & Ramps D4 / SER4                              //Correcting Ramps 1.6
+#else
+#define AUXOUTPUT5_PORT         PIOC
+#define AUXOUTPUT5_PIN          26
 #endif
 
 // Define flood and mist coolant enable output pins.
@@ -163,8 +174,6 @@
 #define CYCLE_START_PORT    PIOA
 #define CYCLE_START_PIN     6   // DUE A4 & Ramps A4 / AUX-2 Connector U$10 (4/10)          //!!! Ramps 1.6 D1 goes AUX-1 A-OUT 4 which Ramps Smart doesnt have !!!
 
-#ifdef HAS_IOPORTS
-
 #define AUXINPUT0_PORT      PIOA
 #define AUXINPUT0_PIN       14  // Due D23 & Ramps D23 / AUX-4 Connector U$9 (16/18)        //Correcting Ramps 1.6
 #define AUXINPUT1_PORT      PIOD
@@ -178,7 +187,5 @@
 #define AUXOUTPUT1_PIN      12  // Due D51 & Ramps D51 / MOSI / AUX-3 Connector U$1 (6/10)  //Ramps 1.6 Has different style AUX-3 port but pin is there (4/8)
 #define AUXOUTPUT2_PORT     PIOC
 #define AUXOUTPUT2_PIN      14  // Due D49 & Ramps D49 / AUX-3 Connector U$1 (4/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (2/8)
-
-#endif
 
 /**/

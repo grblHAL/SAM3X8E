@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Mappings according to cpu_map.h for Arduino Mega 2560 : Working @EliteEng
 
@@ -62,17 +62,32 @@
 #define Z_LIMIT_PORT        PIOD
 #define Z_LIMIT_PIN         8   // Due Digital Pin 12
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     PIOC
-#define SPINDLE_ENABLE_PIN      24  // Due Digital Pin 6
+// Define driver spindle pins
+
+#if DRIVER_SPINDLE_PWM_ENABLE
+#define SPINDLE_PWM_CHANNEL     6
+#define SPINDLE_PWM_PORT        PIOC
+#define SPINDLE_PWM_PIN         23 // Due Digital Pin 7 / PWML6 B
+#else
+#define AUXOUTPUT0_PORT         PIOC
+#define AUXOUTPUT0_PIN          23
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
 #define SPINDLE_DIRECTION_PORT  PIOC
 #define SPINDLE_DIRECTION_PIN   25  // Due Digital Pin 5
+#else
+#define AUXOUTPUT1_PORT         PIOC
+#define AUXOUTPUT1_PIN          25
+#endif
 
-// Start of PWM & Stepper Enabled Spindle
-
-#define SPINDLE_PWM_CHANNEL 6
-#define SPINDLE_PWM_PORT    PIOC
-#define SPINDLE_PWM_PIN     23 // Due Digital Pin 7 / PWML6 B
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PORT     PIOC
+#define SPINDLE_ENABLE_PIN      24  // Due Digital Pin 6
+#else
+#define AUXOUTPUT2_PORT         PIOC
+#define AUXOUTPUT2_PIN          264
+#endif
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PORT  PIOC
@@ -95,6 +110,5 @@
 // Define probe switch input pin.
 #define PROBE_PORT          PIOA
 #define PROBE_PIN           0   // DUE Analog Pin CANTX
-
 
 /**/

@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,16 +53,32 @@
 #define Z_LIMIT_PORT            PIOD // A11
 #define Z_LIMIT_PIN             8
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     PIOA
-#define SPINDLE_ENABLE_PIN      15
-#define SPINDLE_DIRECTION_PORT  PIOB
-#define SPINDLE_DIRECTION_PIN   27
+// Define driver spindle pins
 
-// Start of PWM & Stepper Enabled Spindle
+#if DRIVER_SPINDLE_PWM_ENABLE
 #define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[2])
 #define SPINDLE_PWM_PORT        PIOD
 #define SPINDLE_PWM_PIN         7 // TIOA8
+#else
+#define AUXOUTPUT0_PORT         PIOD
+#define AUXOUTPUT0_PIN          7
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
+#define SPINDLE_DIRECTION_PORT  PIOB
+#define SPINDLE_DIRECTION_PIN   27  // Due Digital Pin 8
+#else
+#define AUXOUTPUT1_PORT         PIOB
+#define AUXOUTPUT1_PIN          27
+#endif
+
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PORT     PIOA
+#define SPINDLE_ENABLE_PIN      15
+#else
+#define AUXOUTPUT2_PORT         PIOA
+#define AUXOUTPUT2_PIN          15
+#endif
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PORT      PIOA

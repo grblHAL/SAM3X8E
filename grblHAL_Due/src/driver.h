@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2022 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -100,6 +100,10 @@ void IRQUnRegister(int32_t IRQnum);
 
 // End configuration
 
+#if !defined(SERIAL2_DEVICE) && (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
+#define SERIAL2_DEVICE 1 // Select serial device for ModBus communication, default is 1, allowed values are 0, 1 and 2
+#endif
+
 #if BLUETOOTH_ENABLE == 2
 #define SERIAL2_DEVICE 1
 #endif
@@ -179,9 +183,7 @@ typedef struct {
 
 void PIO_EnableInterrupt (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
-#ifdef HAS_IOPORTS
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_event (input_signal_t *input);
-#endif
 
 #endif

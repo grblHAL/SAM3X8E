@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,6 +37,12 @@
 #define RX_BUFFER_LWM 300
 
 #define BUFCOUNT(head, tail, size) ((head >= tail) ? (head - tail) : (size - tail + head))
+
+// Serial devices
+// -1 (Default)  0 (PA8)  = RX,   1 (PA9)  = TX (same as USB programming port)
+// 0            19 (PA10) = RX,  18 (PA11) = TX
+// 1            17 (PA12) = RX,  16 (PA13) = TX
+// 2            52 (PB21) = RX, A11 (PB21) = TX
 
 // Set SERIAL_DEVICE to -1 for communication over the programming port on Arduino Due
 #ifndef SERIAL_DEVICE

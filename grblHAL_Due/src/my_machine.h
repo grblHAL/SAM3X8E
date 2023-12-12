@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,17 @@
 //#define USB_SERIAL_CDC     1 // Use native USB port for communication.
 //#define SAFETY_DOOR_ENABLE 1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE   2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
-//#define VFD_ENABLE         1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+// Spindle selection:
+// Up to four specific spindle drivers can be instantiated at a time
+// depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
+// If none are specified the default PWM spindle is instantiated.
+// Spindle definitions can be found in grbl/spindle_control.h.
+// More here https://github.com/grblHAL/Plugins_spindle
+//#define SPINDLE0_ENABLE        SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE        SPINDLE_PWM0
+//#define SPINDLE2_ENABLE        SPINDLE_NONE 
+//#define SPINDLE2_ENABLE        SPINDLE_NONE
+// **********************
 //#define MODBUS_ENABLE      1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define PLASMA_ENABLE      1 // Plasma/THC plugin.
 //#define OPENPNP_ENABLE     1 // OpenPNP plugin. To be completed.
@@ -51,15 +61,6 @@
 #ifndef USB_SERIAL_CDC
 #define SERIAL_DEVICE       -1 // Select serial device for output if not using native USB, default is -1, max value is 2
 #endif
-#if VFD_ENABLE || (MPG_ENABLE && !defined(USB_SERIAL_CDC))
-#define SERIAL2_DEVICE       1 // Select serial device for ModBus or MPG communication, default is 1, allowed values are 0, 1 and 2
-#endif
-
-// Serial devices
-// -1 (Default)  0 (PA8)  = RX,   1 (PA9)  = TX (same as USB programming port)
-// 0            19 (PA10) = RX,  18 (PA11) = TX
-// 1            17 (PA12) = RX,  16 (PA13) = TX
-// 2            52 (PB21) = RX, A11 (PB21) = TX
 
 // If the selected board map supports more than three motors ganging and/or auto-squaring
 // of axes can be enabled here.

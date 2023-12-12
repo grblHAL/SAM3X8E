@@ -1,9 +1,9 @@
 /*
-  generic_map.h - river code for Atmel SAM3X8E ARM processor
+  generic_map.h - driver code for Atmel SAM3X8E ARM processor
 
   Part of grblHAL
 
-  Copyright (c) 2019-2021 Terje Io
+  Copyright (c) 2019-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,8 +22,6 @@
 #if N_ABC_MOTORS
 #error "Axis configuration is not supported!"
 #endif
-
-//#define HAS_IOPORTS
 
 // Define step pulse output pins.
 #define X_STEP_PORT             PIOA
@@ -58,16 +56,32 @@
 #define Z_LIMIT_PORT            PIOC // A11
 #define Z_LIMIT_PIN             24
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT     PIOA
-#define SPINDLE_ENABLE_PIN      15
-#define SPINDLE_DIRECTION_PORT  PIOD
-#define SPINDLE_DIRECTION_PIN   3
+// Define driver spindle pins
 
-// Start of PWM & Stepper Enabled Spindle
+#if DRIVER_SPINDLE_PWM_ENABLE
 #define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
 #define SPINDLE_PWM_PORT        PIOC
 #define SPINDLE_PWM_PIN         25  // TIOA6
+#else
+#define AUXOUTPUT3_PORT         PIOC
+#define AUXOUTPUT3_PIN          25
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
+#define SPINDLE_DIRECTION_PORT  PIOD
+#define SPINDLE_DIRECTION_PIN   3
+#else
+#define AUXOUTPUT4_PORT         PIOD
+#define AUXOUTPUT4_PIN          3
+#endif
+
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PORT     PIOA
+#define SPINDLE_ENABLE_PIN      15
+#else
+#define AUXOUTPUT5_PORT         PIOA
+#define AUXOUTPUT5_PIN          15
+#endif
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PORT      PIOC
@@ -102,14 +116,11 @@
 #define SD_CD_PIN               30
 #endif
 
-#ifdef HAS_IOPORTS
 #define AUXOUTPUT0_PORT         PIOA
 #define AUXOUTPUT0_PIN          14
 #define AUXOUTPUT1_PORT         PIOD
 #define AUXOUTPUT1_PIN          0
 #define AUXOUTPUT2_PORT         PIOD
 #define AUXOUTPUT2_PIN          2
-#endif
 
 /**/
-

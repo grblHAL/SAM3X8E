@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -104,22 +104,24 @@
 #define M4_ENABLE_PIN       9   // Due Digital Pin 65
 #endif
 
-#if VFD_SPINDLE == 0
+// Define driver spindle pins
 
-// Define spindle enable and spindle direction output pins.
-#define SPINDLE_ENABLE_PORT PIOC
-#define SPINDLE_ENABLE_PIN  23  // Due Digital Pin 7
-/*
-#define SPINDLE_DIRECTION_PORT  PIOC
-#define SPINDLE_DIRECTION_PIN   25  // Due Digital Pin 5
-*/
-
-// Start of PWM & Stepper Enabled Spindle
+#if DRIVER_SPINDLE_PWM_ENABLE
 #define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[0])
 #define SPINDLE_PWM_CCREG   2
 #define SPINDLE_PWM_PORT    PIOC
 #define SPINDLE_PWM_PIN     22  // Due Digital Pin 8 // PWML5 B
+#else
+#define AUXOUTPUT0_PORT     PIOC
+#define AUXOUTPUT0_PIN      15
+#endif
 
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PORT PIOC
+#define SPINDLE_ENABLE_PIN  23  // Due Digital Pin 7
+#else
+#define AUXOUTPUT1_PORT     PIOC
+#define AUXOUTPUT1_PIN      23
 #endif
 
 // Define flood and mist coolant enable output pins.
