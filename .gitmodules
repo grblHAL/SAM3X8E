@@ -19,3 +19,6 @@
 [submodule "grblHAL_Due/src/plasma"]
 	path = grblHAL_Due/src/plasma
 	url = https://github.com/grblHAL/Plugin_plasma
+[submodule "grblHAL_Due/src/laser"]
+	path = grblHAL_Due/src/laser
+	url = https://github.com/grblHAL/Plugins_laser/
