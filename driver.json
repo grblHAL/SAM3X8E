@@ -25,6 +25,8 @@
       { "id": "eeprom" },
       { "id": "keypad" },
       { "id": "macros" },
+      { "id": "laser_cluster" },
+      { "id": "laser_coolant" },
       { "id": "plasma" },
       { "id": "openpnp" },
       { "id": "bluetooth" }
