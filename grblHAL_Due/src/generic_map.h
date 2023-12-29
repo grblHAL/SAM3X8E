@@ -96,9 +96,23 @@
 #define FEED_HOLD_PIN           14
 #define CYCLE_START_PORT        PIOC
 #define CYCLE_START_PIN         16
+
+#define AUXINPUT0_PORT          PIOC
+#define AUXINPUT0_PIN           18
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PORT        PIOC
-#define SAFETY_DOOR_PIN         18
+#define SAFETY_DOOR_PORT        AUXINPUT0_PORT
+#define SAFETY_DOOR_PIN         AUXINPUT0_PIN
+#endif
+
+#if MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PORT        AUXINPUT0_PORT
+#define MOTOR_FAULT_PIN         AUXINPUT0_PIN
+#endif
+
+#if MOTOR_WARNING_ENABLE
+#define MOTOR_WARNING_PORT      AUXINPUT0_PORT
+#define MOTOR_WARNING_PIN       AUXINPUT0_PIN
 #endif
 
 // Define probe switch input pin.

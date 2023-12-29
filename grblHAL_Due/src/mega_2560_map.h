@@ -102,9 +102,23 @@
 #define FEED_HOLD_PIN       18  // DUE Analog Pin 9
 #define CYCLE_START_PORT    PIOB
 #define CYCLE_START_PIN     19  // DUE Analog Pin 10
+
+#define AUXINPUT0_PORT      PIOB
+#define AUXINPUT0_PIN       20 // DUE Analog Pin 11
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PORT    PIOB
-#define SAFETY_DOOR_PIN     20  // DUE Analog Pin 11
+#define SAFETY_DOOR_PORT    AUXINPUT0_PORT
+#define SAFETY_DOOR_PIN     AUXINPUT0_PIN
+#endif
+
+#if MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PORT    AUXINPUT0_PORT
+#define MOTOR_FAULT_PIN     AUXINPUT0_PIN
+#endif
+
+#if MOTOR_WARNING_ENABLE
+#define MOTOR_WARNING_PORT  AUXINPUT0_PORT
+#define MOTOR_WARNING_PIN   AUXINPUT0_PIN
 #endif
 
 // Define probe switch input pin.

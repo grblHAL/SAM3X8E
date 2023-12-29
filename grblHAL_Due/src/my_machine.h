@@ -35,7 +35,6 @@
 // Uncomment to enable.
 
 //#define USB_SERIAL_CDC       1 // Use native USB port for communication.
-//#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
@@ -48,18 +47,30 @@
 //#define SPINDLE2_ENABLE      SPINDLE_NONE
 //#define SPINDLE2_ENABLE      SPINDLE_NONE
 // **********************
-//#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-//#define PLASMA_ENABLE        1 // Plasma/THC plugin.
-//#define OPENPNP_ENABLE       1 // OpenPNP plugin. To be completed.
-//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
-                                 // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
-                                 // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
-//#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
-                                 // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
-//#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
-//#define LB_CLUSTERS_ENABLE   1 // LaserBurn cluster support.
-//#define EEPROM_ENABLE       16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
-//#define EEPROM_IS_FRAM       1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define PLASMA_ENABLE           1 // Plasma/THC plugin.
+//#define OPENPNP_ENABLE          1 // OpenPNP plugin. To be completed.
+//#define MPG_ENABLE              1 // Enable MPG interface. Requires serial port and one handshake pin unless
+                                    // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
+                                    // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
+//#define KEYPAD_ENABLE           2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
+                                    // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
+//#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
+//#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
+//#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
+//#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+// Optional control signals:
+// These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
+// NOTE: If not enough pins are available assignment will silently fail.
+#define SAFETY_DOOR_ENABLE      1
+//#define MOTOR_FAULT_ENABLE      1
+//#define MOTOR_WARNING_ENABLE    1
+//#define PROBE_DISCONNECT_ENABLE 1
+#define STOP_DISABLE_ENABLE     1
+//#define BLOCK_DELETE_ENABLE     1
+//#define SINGLE_BLOCK_ENABLE     1
+//#define LIMITS_OVERRIDE_ENABLE  1
+
 #ifndef USB_SERIAL_CDC
 #define SERIAL_DEVICE       -1 // Select serial device for output if not using native USB, default is -1, max value is 2
 #endif

@@ -94,13 +94,6 @@
 #define CYCLE_START_PORT        PIOA
 #define CYCLE_START_PIN         23
 
-/*
-#if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PORT        PIOC
-#define SAFETY_DOOR_PIN         18
-
-#endif
-*/
 // Define probe switch input pin.
 #define PROBE_PORT              PIOA
 #define PROBE_PIN               4

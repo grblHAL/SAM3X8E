@@ -74,6 +74,9 @@ static axes_signals_t next_step_outbits;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static debounce_queue_t debounce_queue = {0};
 static input_signal_t a_signals[10] = {0}, b_signals[10] = {0}, c_signals[10] = {0}, d_signals[10] = {0};
+#if AUX_CONTROLS_ENABLED
+static input_signal_t *door_pin;
+#endif
 #ifdef PROBE_PIN
 static probe_state_t probe = {
     .connected = On
@@ -110,7 +113,7 @@ static input_signal_t inputpin[] = {
   #ifdef CYCLE_START_PIN
     { .id = Input_CycleStart,   .port = CYCLE_START_PORT,  .pin = CYCLE_START_PIN,   .group = PinGroup_Control },
   #endif
-  #ifdef SAFETY_DOOR_PIN
+  #if SAFETY_DOOR_BIT
     { .id = Input_SafetyDoor,   .port = SAFETY_DOOR_PORT,  .pin = SAFETY_DOOR_PIN,   .group = PinGroup_Control },
   #endif
   #ifdef MPG_MODE_PIN
@@ -338,6 +341,19 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         }
     } else if(callback)
         callback();
+}
+
+inline static bool enqueue_debounce (input_signal_t *signal)
+{
+    bool ok;
+    uint_fast8_t bptr = (debounce_queue.head + 1) & (DEBOUNCE_QUEUE - 1);
+
+    if((ok = bptr != debounce_queue.tail)) {
+        debounce_queue.signal[debounce_queue.head] = signal;
+        debounce_queue.head = bptr;
+    }
+
+    return ok;
 }
 
 #if STEP_INJECT_ENABLE
@@ -709,28 +725,94 @@ static void limitsEnable (bool on, axes_signals_t homing_cycle)
 // Each bitfield bit indicates a control signal, where triggered is 1 and not triggered is 0.
 static control_signals_t systemGetState (void)
 {
-    control_signals_t signals = {0};
+    control_signals_t signals = { settings.control_invert.mask };
 
-    signals.value = settings.control_invert.mask;
-
-  #ifdef RESET_PIN
+#ifdef RESET_PIN
     signals.reset = BITBAND_PERI(RESET_PORT->PIO_PDSR, RESET_PIN);
-  #endif
-  #ifdef FEED_HOLD_PIN
+#endif
+#ifdef FEED_HOLD_PIN
     signals.feed_hold = BITBAND_PERI(FEED_HOLD_PORT->PIO_PDSR, FEED_HOLD_PIN);
-  #endif
-  #ifdef CYCLE_START_PIN
+#endif
+#ifdef CYCLE_START_PIN
     signals.cycle_start = BITBAND_PERI(CYCLE_START_PORT->PIO_PDSR, CYCLE_START_PIN);
-  #endif
-  #ifdef SAFETY_DOOR_PIN
+#endif
+#ifdef SAFETY_DOOR_PIN
     signals.safety_door_ajar = BITBAND_PERI(SAFETY_DOOR_PORT->PIO_PDSR, SAFETY_DOOR_PIN);
+#endif
+
+#if AUX_CONTROLS_ENABLED
+
+  #ifdef SAFETY_DOOR_PIN
+    if(aux_ctrl[AuxCtrl_SafetyDoor].debouncing)
+        signals.safety_door_ajar = !settings.control_invert.safety_door_ajar;
+    else
+        signals.safety_door_ajar = DIGITAL_IN(SAFETY_DOOR_PORT, SAFETY_DOOR_PIN);
   #endif
+  #ifdef MOTOR_FAULT_PIN
+    signals.motor_fault = DIGITAL_IN(MOTOR_FAULT_PORT, MOTOR_FAULT_PIN);
+  #endif
+  #ifdef MOTOR_WARNING_PIN
+    signals.motor_warning = DIGITAL_IN(MOTOR_WARNING_PORT, MOTOR_WARNING_PIN);
+  #endif
+
+  #if AUX_CONTROLS_SCAN
+    uint_fast8_t i;
+    for(i = AUX_CONTROLS_SCAN; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            signals.mask &= ~aux_ctrl[i].cap.mask;
+            if(hal.port.wait_on_input(Port_Digital, aux_ctrl[i].port, WaitMode_Immediate, 0.0f) == 1)
+                signals.mask |= aux_ctrl[i].cap.mask;
+        }
+    }
+  #endif
+
+#endif // AUX_CONTROLS_ENABLED
 
     if(settings.control_invert.mask)
         signals.value ^= settings.control_invert.mask;
 
     return signals;
 }
+
+#if AUX_CONTROLS_ENABLED
+
+static void aux_irq_handler (uint8_t port, bool state)
+{
+    uint_fast8_t i;
+    control_signals_t signals = systemGetState();
+
+    for(i = 0; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].port == port) {
+            if(!aux_ctrl[i].debouncing) {
+                signals.mask |= aux_ctrl[i].cap.mask;
+                if(i == AuxCtrl_SafetyDoor && (aux_ctrl[i].debouncing = enqueue_debounce(door_pin)))
+                    DEBOUNCE_TIMER.TC_CCR = TC_CCR_SWTRG;
+            }
+        }
+    }
+
+    if(signals.mask)
+        hal.control.interrupt_callback(signals);
+}
+
+bool aux_claim (xbar_t *properties, uint8_t port, void *data)
+{
+    ((aux_ctrl_t *)data)->port = port;
+
+    return ioport_claim(Port_Digital, Port_Input, &((aux_ctrl_t *)data)->port, xbar_fn_to_pinname(((aux_ctrl_t *)data)->function));
+}
+
+static bool aux_claim_explicit (aux_ctrl_t *aux)
+{
+    if((aux->enabled = aux->port != 0xFF && ioport_claim(Port_Digital, Port_Input, &aux->port, xbar_fn_to_pinname(aux->function))))
+        hal.signals_cap.mask |= aux->cap.mask;
+    else
+        aux->port = 0xFF;
+
+    return aux->enabled;
+}
+
+#endif // AUX_CONTROLS_ENABLED
 
 #ifdef PROBE_PIN
 
@@ -1275,6 +1357,15 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
         if(settings->limits.flags.hard_enabled)
             hal.limits.enable(true, (axes_signals_t){0});
+
+#if AUX_CONTROLS_ENABLED
+        for(i = 0; i < AuxCtrl_NumEntries; i++) {
+            if(aux_ctrl[i].enabled && aux_ctrl[i].irq_mode != IRQ_Mode_None) {
+                aux_ctrl[i].irq_mode = door_pin->irq_mode = (settings->control_invert.mask & aux_ctrl[i].cap.mask) ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                hal.port.register_interrupt_handler(aux_ctrl[i].port, aux_ctrl[i].irq_mode, aux_irq_handler);
+            }
+        }
+#endif
     }
 }
 
@@ -1552,6 +1643,11 @@ bool nvsInit (void)
 
 // End EEPROM emulation
 
+inline static uint64_t get_micros (void)
+{
+    return (uint64_t)micros();
+}
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done
 bool driver_init (void)
@@ -1600,7 +1696,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "231209";
+    hal.driver_version = "231228";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1655,7 +1751,7 @@ bool driver_init (void)
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
-    hal.get_micros = micros;
+    hal.get_micros = get_micros;
     hal.get_elapsed_ticks = millis;
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
@@ -1741,9 +1837,6 @@ bool driver_init (void)
 
  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
-#ifdef SAFETY_DOOR_PIN
-    hal.signals_cap.safety_door_ajar = On;
-#endif
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
 #ifdef COOLANT_MIST_PIN
@@ -1768,6 +1861,20 @@ bool driver_init (void)
             input->id = (pin_function_t)(Input_Aux0 + aux_inputs.n_pins++);
             input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_Edges;
+#if SAFETY_DOOR_ENABLE
+            if(input->port == SAFETY_DOOR_PORT && input->pin == SAFETY_DOOR_PIN && input->cap.irq_mode != IRQ_Mode_None) {
+                door_pin = input;
+                aux_ctrl[AuxCtrl_SafetyDoor].port = aux_inputs.n_pins - 1;
+            }
+#endif
+#if MOTOR_FAULT_ENABLE
+            if(input->port == MOTOR_FAULT_PORT && input->pin == MOTOR_FAULT_PIN && input->cap.irq_mode != IRQ_Mode_None)
+                aux_ctrl[AuxCtrl_MotorFault].port = aux_inputs.n_pins - 1;
+#endif
+#if MOTOR_WARNING_ENABLE
+            if(input->port == MOTOR_WARNING_PORT && input->pin == MOTOR_WARNING_PIN && input->cap.irq_mode != IRQ_Mode_None)
+                aux_control_port[AuxCtrl_MotorWarning] = aux_inputs.n_pins - 1;
+#endif
         }
     }
 
@@ -1781,6 +1888,33 @@ bool driver_init (void)
     }
 
     ioports_init(&aux_inputs, &aux_outputs);
+
+#if SAFETY_DOOR_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_SafetyDoor]);
+#elif defined(SAFETY_DOOR_PIN)
+    hal.signals_cap.safety_door = On;
+#endif
+
+#if MOTOR_FAULT_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorFault]);
+#elif defined(MOTOR_FAULT_PIN)
+    hal.signals_cap.motor_fault = On;
+#endif
+
+#if MOTOR_WARNING_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorWarning]);
+#elif defined(MOTOR_WARNING_PIN)
+    hal.signals_cap.motor_warning = On;
+#endif
+
+#if AUX_CONTROLS_ENABLED
+    for(i = AuxCtrl_ProbeDisconnect; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            if((aux_ctrl[i].enabled = ioports_enumerate(Port_Digital, Port_Input, (pin_mode_t){ .irq_mode = aux_ctrl[i].irq_mode }, true, aux_claim, (void *)&aux_ctrl[i])))
+                hal.signals_cap.mask |= aux_ctrl[i].cap.mask;
+        }
+    }
+#endif
 
     serialRegisterStreams();
 
@@ -1821,19 +1955,6 @@ static void STEPDELAY_IRQHandler (void)
     }
 }
 
-inline static bool enqueue_debounce (input_signal_t *signal)
-{
-    bool ok;
-    uint_fast8_t bptr = (debounce_queue.head + 1) & (DEBOUNCE_QUEUE - 1);
-
-    if((ok = bptr != debounce_queue.tail)) {
-        debounce_queue.signal[debounce_queue.head] = signal;
-        debounce_queue.head = bptr;
-    }
-
-    return ok;
-}
-
 // Returns NULL if no debounce checks enqueued
 inline static input_signal_t *get_debounce (void)
 {
@@ -1870,6 +1991,12 @@ static void DEBOUNCE_IRQHandler (void)
             case PinGroup_Control:
                 hal.control.interrupt_callback(systemGetState());
                 break;
+
+#if AUX_CONTROLS_ENABLED
+            case PinGroup_AuxInput:
+                aux_ctrl[AuxCtrl_SafetyDoor].debouncing = false;
+                break;
+#endif
 
             default:
                 break;
