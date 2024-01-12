@@ -89,22 +89,22 @@
 #if N_ABC_MOTORS > 0
 #define M3_AVAILABLE
 #define M3_STEP_PORT        PIOD
-#define M3_STEP_PIN         1   // Due Digital Pin 61?
+#define M3_STEP_PIN         1   // Due Digital Pin 26
 #define M3_DIRECTION_PORT   PIOD
-#define M3_DIRECTION_PIN    3   // Due Digital Pin 60?
+#define M3_DIRECTION_PIN    3   // Due Digital Pin 28
 #define M3_ENABLE_PORT      PIOA
-#define M3_ENABLE_PIN       15  // Due Digital Pin 62?
+#define M3_ENABLE_PIN       15  // Due Digital Pin 24
 #endif
 
 // Define ganged axis or B axis step pulse and step direction output pins.
 #if N_ABC_MOTORS == 2
 #define M4_AVAILABLE
 #define M4_STEP_PORT        PIOC
-#define M4_STEP_PIN         4   // Due Digital Pin 64?
+#define M4_STEP_PIN         4   // Due Digital Pin 36
 #define M4_DIRECTION_PORT   PIOC
-#define M4_DIRECTION_PIN    2   // Due Digital Pin 63?
-#define M4_ENABLE_PORT      PIOC
-#define M4_ENABLE_PIN       9   // Due Digital Pin 65
+#define M4_DIRECTION_PIN    2   // Due Digital Pin 34
+#define M4_ENABLE_PORT      PIOD
+#define M4_ENABLE_PIN       9   // Due Digital Pin 30
 #endif
 
 // Define driver spindle pins
