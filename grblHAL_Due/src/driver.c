@@ -1121,14 +1121,14 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
 
 #if MPG_MODE == 1
 
-static void mpg_select (sys_state_t state)
+static void mpg_select (void *data)
 {
     stream_mpg_enable(BITBAND_PERI(MPG_MODE_PORT->PIO_ODSR, MPG_MODE_PIN) == 0);
 
     PIO_EnableInterrupt(mpg_pin, (mpg_pin->mode.irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
 }
 
-static void mpg_enable (sys_state_t state)
+static void mpg_enable (void *data)
 {
     if(sys.mpg_mode == BITBAND_PERI(MPG_MODE_PORT->PIO_ODSR, MPG_MODE_PIN))
         stream_mpg_enable(true);
@@ -1736,7 +1736,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "240119";
+    hal.driver_version = "240125";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1823,10 +1823,10 @@ bool driver_init (void)
 #if MPG_MODE == 1
   #if KEYPAD_ENABLE == 2
     if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
-        protocol_enqueue_rt_command(mpg_enable);
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
   #else
     if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, NULL)))
-        protocol_enqueue_rt_command(mpg_enable);
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
   #endif
 #elif MPG_MODE == 2
     hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode);
@@ -1900,8 +1900,8 @@ bool driver_init (void)
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
             input->id = (pin_function_t)(Input_Aux0 + aux_inputs.n_pins++);
-            input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_Edges;
+            input->mode.pull_mode = input->cap.pull_mode = PullMode_Up;
 #if SAFETY_DOOR_ENABLE
             if(input->port == SAFETY_DOOR_PORT && input->pin == SAFETY_DOOR_PIN && input->cap.irq_mode != IRQ_Mode_None) {
                 door_pin = input;
@@ -2071,7 +2071,7 @@ inline static void PIO_IRQHandler (input_signal_t *signals, uint32_t isr)
 #if MPG_MODE == 1
                 case PinGroup_MPG:
                     PIO_EnableInterrupt(&inputpin[i], IRQ_Mode_None);
-                    protocol_enqueue_rt_command(mpg_select);
+                    protocol_enqueue_foreground_task(mpg_select, NULL);
                     break;
 #endif
                 default:
