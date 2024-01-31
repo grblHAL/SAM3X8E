@@ -1,6 +1,7 @@
 {
   "caps":
   {
+    "informal": 1,
     "axes": 6,
     "usb_cdc": 1,
     "uart": 1,
@@ -14,7 +15,6 @@
     "digital_out": 3,
     "probe": 1,
     "safety_door": 1,
-    "estop": 0,
     "mpg_mode": 1,
     "hc05": 1,
     "pio_board": "due",
@@ -40,11 +40,8 @@
       "MAP": "grblHAL_Due/src/cmcgrath_rev3_map.h",
       "caps": {
         "axes": 3,
-        "digital_in": 0,
         "digital_out": 3,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 0
+        "serial_ports": 1
       }
     },
     {
@@ -54,11 +51,7 @@
       "MAP": "grblHAL_Due/src/tinyg2_due_map.h",
       "caps": {
         "axes": 6,
-        "digital_in": 0,
-        "digital_out": 0,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 0
+        "serial_ports": 1
       }
     },
     { "name": "Ramps 1.6",
@@ -69,8 +62,7 @@
         "axes": 5,
         "digital_in": 3,
         "digital_out": 3,
-        "eeprom": 0,
-        "fram": 0
+        "serial_ports": 1
       }
     },
     { "name": "Ramps SMART",
@@ -82,7 +74,7 @@
         "digital_in": 3,
         "digital_out": 3,
         "eeprom": 1,
-        "fram": 0
+        "serial_ports": 1
       }
     },
     { "name": "Mega 2560",
@@ -91,10 +83,7 @@
       "MAP": "grblHAL_Due/src/mega_2560_map.h",
       "caps": {
         "axes": 3,
-        "digital_in": 0,
-        "digital_out": 0,
-        "eeprom": 0,
-        "fram": 0
+        "serial_ports": 1
       }
     },
     { "name": "Protoneer v3",
@@ -103,10 +92,7 @@
       "MAP": "grblHAL_Due/src/protoneer_3.xx_map.h",
       "caps": {
         "axes": 3,
-        "digital_in": 0,
-        "digital_out": 0,
-        "eeprom": 0,
-        "fram": 0
+        "serial_ports": 1
       }
     },
     { "name": "Radds 1.6",
@@ -116,10 +102,7 @@
       "caps": {
         "axes": 5,
         "spindle_dir": 0,
-        "digital_in": 0,
-        "digital_out": 0,
-        "eeprom": 0,
-        "fram": 0
+        "serial_ports": 1
       }
     }
   ]
