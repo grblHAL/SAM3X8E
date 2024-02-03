@@ -50,7 +50,9 @@
       "MAP": "grblHAL_Due/src/tinyg2_due_map.h",
       "caps": {
         "axes": 6,
-        "serial_ports": 1
+        "serial_ports": 1,
+        "safety_door": 0,
+        "spindle_dir": 0
       }
     },
     { "name": "Ramps 1.6",
@@ -61,7 +63,8 @@
         "axes": 5,
         "digital_in": 3,
         "digital_out": 3,
-        "serial_ports": 1
+        "serial_ports": 1,
+        "safety_door": 0
       }
     },
     { "name": "Ramps SMART",
@@ -72,6 +75,7 @@
         "axes": 5,
         "digital_in": 3,
         "digital_out": 3,
+        "safety_door": 0,
         "eeprom": 1,
         "serial_ports": 1
       }
@@ -100,6 +104,7 @@
       "MAP": "grblHAL_Due/src/radds_1.6_map.h",
       "caps": {
         "axes": 5,
+        "safety_door": 0,
         "spindle_dir": 0,
         "serial_ports": 1
       }
