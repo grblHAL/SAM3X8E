@@ -16,7 +16,6 @@
     "probe": 1,
     "safety_door": 1,
     "mpg_mode": 1,
-    "hc05": 1,
     "pio_board": "due",
     "build_dir": "grblHAL_Due",
     "plugins": [
