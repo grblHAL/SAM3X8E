@@ -5,18 +5,18 @@
 
   Copyright (c) 2019-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 //
@@ -67,9 +67,6 @@ void IRQUnRegister(int32_t IRQnum);
 #define STEPPER_TIMER_IRQn  TC0_IRQn
 #define STEP_TIMER          (TC0->TC_CHANNEL[1])
 #define STEP_TIMER_IRQn     TC1_IRQn
-
-#define DEBOUNCE_TIMER      (TC1->TC_CHANNEL[0])
-#define DEBOUNCE_TIMER_IRQn TC3_IRQn
 
 #ifdef BOARD_TINYG2_DUE
     #include "tinyg2_due_map.h"
@@ -151,16 +148,15 @@ void IRQUnRegister(int32_t IRQnum);
 #endif
 
 typedef struct {
+    pin_function_t id;
+    pin_cap_t cap;
+    pin_mode_t mode;
+    uint8_t user_port;
     Pio *port;
     uint_fast8_t pin;
     uint32_t bit;
-    pin_function_t id;
     pin_group_t group;
-    bool debounce;
-    pin_cap_t cap;
-    pin_mode_t mode;
     ioport_interrupt_callback_ptr interrupt_callback;
-    aux_ctrl_t *aux_ctrl;
     const char *description;
 } input_signal_t;
 
@@ -182,6 +178,7 @@ typedef struct {
     } pins;
 } pin_group_pins_t;
 
+void PIO_InputMode (Pio *port, uint32_t bit, bool no_pullup);
 void PIO_EnableInterrupt (const input_signal_t *input, pin_irq_mode_t irq_mode);
 
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);

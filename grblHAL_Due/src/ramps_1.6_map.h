@@ -9,18 +9,18 @@
 
   Mappings according to Re-ARM for NXP LPC1768
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  grblHAL with Grbl. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if (N_AUTO_SQUARED && N_AUTO_SQUARED < N_ABC_MOTORS) || N_ABC_MOTORS > 2
@@ -147,16 +147,19 @@
 #define CYCLE_START_PORT    PIOA
 #define CYCLE_START_PIN     6   // DUE Analog Pin 5
 
-// Define probe switch input pin.
-#define PROBE_PORT         	PIOB
-#define PROBE_PIN        	13  // Due Digital Pin 21
-
 #define AUXINPUT0_PORT      PIOA
 #define AUXINPUT0_PIN       14
 #define AUXINPUT1_PORT      PIOD
 #define AUXINPUT1_PIN       0
 #define AUXINPUT2_PORT      PIOD
 #define AUXINPUT2_PIN       2
+#define AUXINPUT3_PORT      PIOB  // Due Digital Pin 21
+#define AUXINPUT3_PIN       13
+
+#if PROBE_ENABLE
+#define PROBE_PORT          AUXINPUT3_PORT
+#define PROBE_PIN           AUXINPUT3_PIN
+#endif
 
 #define AUXOUTPUT0_PORT     PIOB
 #define AUXOUTPUT0_PIN      14

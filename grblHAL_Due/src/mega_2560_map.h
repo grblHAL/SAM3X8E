@@ -7,18 +7,18 @@
 
   Mappings according to cpu_map.h for Arduino Mega 2560 : Working @EliteEng
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  grblHAL with Grbl. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if N_ABC_MOTORS
@@ -86,7 +86,7 @@
 #define SPINDLE_ENABLE_PIN      24  // Due Digital Pin 6
 #else
 #define AUXOUTPUT2_PORT         PIOC
-#define AUXOUTPUT2_PIN          264
+#define AUXOUTPUT2_PIN          24
 #endif
 
 // Define flood and mist coolant enable output pins.
@@ -105,24 +105,23 @@
 
 #define AUXINPUT0_PORT      PIOB
 #define AUXINPUT0_PIN       20 // DUE Analog Pin 11
+#define AUXINPUT1_PORT      PIOA
+#define AUXINPUT1_PIN       0  // DUE Analog Pin CANTX
+
+#if PROBE_ENABLE
+#define PROBE_PORT          AUXINPUT1_PORT
+#define PROBE_PIN           AUXINPUT1_PIN
+#endif
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PORT    AUXINPUT0_PORT
 #define SAFETY_DOOR_PIN     AUXINPUT0_PIN
-#endif
-
-#if MOTOR_FAULT_ENABLE
+#elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PORT    AUXINPUT0_PORT
 #define MOTOR_FAULT_PIN     AUXINPUT0_PIN
-#endif
-
-#if MOTOR_WARNING_ENABLE
+#elif MOTOR_WARNING_ENABLE
 #define MOTOR_WARNING_PORT  AUXINPUT0_PORT
 #define MOTOR_WARNING_PIN   AUXINPUT0_PIN
 #endif
-
-// Define probe switch input pin.
-#define PROBE_PORT          PIOA
-#define PROBE_PIN           0   // DUE Analog Pin CANTX
 
 /**/
