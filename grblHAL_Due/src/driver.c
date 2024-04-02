@@ -158,7 +158,13 @@ static input_signal_t inputpin[] = {
     { .id = Input_Aux1,         .port = AUXINPUT1_PORT,    .pin = AUXINPUT1_PIN,     .group = PinGroup_AuxInput },
 #endif
 #ifdef AUXINPUT2_PIN
-    { .id = Input_Aux2,         .port = AUXINPUT2_PORT,    .pin = AUXINPUT2_PIN,     .group = PinGroup_AuxInput }
+    { .id = Input_Aux2,         .port = AUXINPUT2_PORT,    .pin = AUXINPUT2_PIN,     .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT3_PIN
+    { .id = Input_Aux3,         .port = AUXINPUT3_PORT,    .pin = AUXINPUT3_PIN,     .group = PinGroup_AuxInput },
+#endif
+#ifdef AUXINPUT4_PIN
+    { .id = Input_Aux4,         .port = AUXINPUT4_PORT,    .pin = AUXINPUT4_PIN,     .group = PinGroup_AuxInput }
 #endif
 };
 
@@ -1718,7 +1724,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "240330";
+    hal.driver_version = "2400402";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
