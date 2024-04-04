@@ -10,7 +10,7 @@ Uncomment `#define BOARD_RAMPS16` in [driver.h](../main/driver.h) to use this ma
                                       NOT USED [  ]         [  ] AREF
                                          IOREF [  ]         [  ] GND
                                          RESET [  ]    A    [13] B.27
-                                           3V3 [  ]    R    [12] D.08 - Probe input
+                                           3V3 [  ]    R    [12] D.08
                                             5V [  ]    D    [11] D.07
                                            GND [  ]    U    [10] C.29/A.28
                                            GND [  ]    I    [09] C.21
@@ -32,7 +32,7 @@ Uncomment `#define BOARD_RAMPS16` in [driver.h](../main/driver.h) to use this ma
                                           B.15 [DAC0]       [18] A.11 - Z limit min
                                           B.16 [DAC1]       [19] A.10 - Z limit max  (Alternative function: Z Auto Square, if compiled)
                                           A.01 [CANRX]      [20] B.12
-                                          A.00 [CANTX]      [21] B.13
+                                          A.00 [CANTX]      [21] B.13 - Probe input
 
 C.06 - X enable ------------------------------------+     +-------------------------------------------- B step - C.04 (E2)
 C.08 ------------------------------------------+    |     |    +---------------------------------------- B dir - C.02 (E2)
@@ -55,4 +55,4 @@ C.07 -----------------------------------------------+     + --------------------
 
 ```
 ---
-2023-01-24
+2024-04-04
