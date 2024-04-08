@@ -574,7 +574,7 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 // Resets and enables stepper driver ISR timer
 static void stepperWakeUp (void)
 {
-    stepperEnable((axes_signals_t){AXES_BITMASK});
+    hal.stepper.enable((axes_signals_t){AXES_BITMASK});
     stepperCyclesPerTick(hal.f_step_timer / 500); // ~2ms delay to allow drivers time to wake up.
 }
 
@@ -1724,7 +1724,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "2400402";
+    hal.driver_version = "2400408";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
