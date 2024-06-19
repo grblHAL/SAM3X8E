@@ -35,6 +35,10 @@
 #include "my_machine.h"
 #endif
 
+#if defined(MCP3221_ENABLE)
+#define I2C_ENABLE 1
+#endif
+
 #include "grbl/driver_opts.h"
 
 /******************************************************************************
@@ -147,6 +151,15 @@ void IRQUnRegister(int32_t IRQnum);
 #error "MPG_MODE_PIN must be defined!"
 #endif
 
+#if defined(AUXOUTPUT0_PWM_PORT) || defined(AUXOUTPUT1_PWM_PORT) ||\
+     defined(AUXOUTPUT0_ANALOG_PORT) || defined(AUXOUTPUT1_ANALOG_PORT) ||\
+      defined(AUXINTPUT0_ANALOG_PORT) || defined(AUXINTPUT1_ANALOG_PORT) ||\
+       defined(MCP3221_ENABLE)
+#define AUX_ANALOG 1
+#else
+#define AUX_ANALOG 0
+#endif
+
 typedef struct {
     pin_function_t id;
     pin_cap_t cap;
@@ -154,6 +167,7 @@ typedef struct {
     uint8_t user_port;
     Pio *port;
     uint_fast8_t pin;
+    EAnalogChannel adc_ch;
     uint32_t bit;
     pin_group_t group;
     ioport_interrupt_callback_ptr interrupt_callback;

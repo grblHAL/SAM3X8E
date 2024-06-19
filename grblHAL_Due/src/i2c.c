@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2023 Terje Io
+  Copyright (c) 2019-2024 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ typedef enum {
     I2CState_Idle = 0,
     I2CState_SendNext,
     I2CState_SendLast,
+    I2CState_AwaitACK,
     I2CState_AwaitCompletion,
     I2CState_ReceiveNext,
     I2CState_ReceiveNextToLast,
@@ -49,6 +50,7 @@ typedef enum {
 
 typedef struct {
     volatile i2c_state_t state;
+    bool nak;
     uint8_t addr;
     uint16_t count;
     uint8_t *data;
@@ -57,7 +59,7 @@ typedef struct {
     uint8_t buffer[8];
 } i2c_trans_t;
 
-static i2c_trans_t i2c;
+static i2c_trans_t i2c = {0};
 
 static void I2C_interrupt_handler (void);
 
@@ -92,15 +94,15 @@ void i2c_init (void)
         static const periph_pin_t scl = {
             .function = Output_SCK,
             .group = PinGroup_I2C,
-            .port = I2C_PERIPH,
-            .pin = I2C_SDA_BIT,
+            .port = I2C_PORT,
+            .pin = I2C_SCL_PIN,
             .mode = { .mask = PINMODE_OD }
         };
 
         static const periph_pin_t sda = {
             .function = Bidirectional_SDA,
             .group = PinGroup_I2C,
-            .port = I2C_PERIPH,
+            .port = I2C_PORT,
             .pin = I2C_SDA_PIN,
             .mode = { .mask = PINMODE_OD }
         };
@@ -110,8 +112,16 @@ void i2c_init (void)
     }
 }
 
+bool i2c_probe (uint_fast16_t i2c_address)
+{
+    i2c.nak = false;
+    i2c_send(i2c_address, NULL, 0, true);
+
+    return !i2c.nak;
+}
+
 // get bytes (max 8), waits for result
-uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 {
     i2c.data  = buf ? buf : i2c.buffer;
     i2c.count = bytes;
@@ -119,7 +129,7 @@ uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
 
     // Send start and address
     I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr)|TWI_MMR_MREAD;
-    I2C_PERIPH->TWI_CR = bytes == 1 ? TWI_CR_START : TWI_CR_START|TWI_CR_STOP; // Start condition +  stop condition if reading one byte
+    I2C_PERIPH->TWI_CR = bytes == 1 ? TWI_CR_START : TWI_CR_START|TWI_CR_STOP; // Start condition + stop condition if reading one byte
     I2C_PERIPH->TWI_IER = TWI_IER_TXRDY|TWI_IER_RXRDY;
 
     if(block)
@@ -132,7 +142,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.count = bytes ? bytes - 1 : 0;
     i2c.data  = buf ? buf : i2c.buffer;
-    i2c.state = i2c.count == 0 ? I2CState_AwaitCompletion : (i2c.count == 1 ? I2CState_SendLast : I2CState_SendNext);
+    i2c.state = bytes == 0 ? I2CState_AwaitACK : (i2c.count == 0 ? I2CState_AwaitCompletion : (i2c.count == 1 ? I2CState_SendLast : I2CState_SendNext));
 
     I2C_PERIPH->TWI_MMR = TWI_MMR_DADR(i2cAddr);
     I2C_PERIPH->TWI_THR = *i2c.data++;
@@ -144,7 +154,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
     return true;
 }
 
-uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
+uint8_t *i2c_readregister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
 {
     while(i2cIsBusy);
 
@@ -183,7 +193,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             i2c.regaddr[0] = transfer->word_addr & 0xFF;
             i2c.regaddr[1] = transfer->word_addr >> 8;
         }
-        I2C_ReadRegister(transfer->address, transfer->data, transfer->word_addr_bytes, transfer->count, true);
+        i2c_readregister(transfer->address, transfer->data, transfer->word_addr_bytes, transfer->count, true);
     } else {
         memcpy(&txbuf[transfer->word_addr_bytes], transfer->data, transfer->count);
         if(transfer->word_addr_bytes == 1)
@@ -209,7 +219,7 @@ void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
 
     i2c.keycode_callback = callback;
 
-    I2C_Receive(i2cAddr, NULL, 1, false);
+    i2c_receive(i2cAddr, NULL, 1, false);
 }
 
 #if TRINAMIC_ENABLE == 2130 && TRINAMIC_I2C
@@ -230,7 +240,7 @@ static TMC2130_status_t I2C_TMC_ReadRegister (TMC2130_t *driver, TMC2130_datagra
     i2c.buffer[3] = 0;
     i2c.buffer[4] = 0;
 
-    res = I2C_ReadRegister(I2C_ADR_I2CBRIDGE, NULL, 5, true);
+    res = i2c_readregister(I2C_ADR_I2CBRIDGE, NULL, 5, true);
 
     status.value = (uint8_t)*res++;
     reg->payload.value = ((uint8_t)*res++ << 24);
@@ -285,6 +295,8 @@ static void I2C_interrupt_handler (void)
     if(ifg & TWI_SR_NACK)
         i2c.state = I2CState_Error;
 
+//    hal.stream.write(uitoa(ifg));
+
     switch(i2c.state) {
 
         case I2CState_Idle:
@@ -302,6 +314,13 @@ static void I2C_interrupt_handler (void)
             I2C_PERIPH->TWI_THR = *i2c.data;
             I2C_PERIPH->TWI_CR = TWI_CR_STOP; // Stop condition
             i2c.state = I2CState_AwaitCompletion;
+            break;
+
+        case I2CState_AwaitACK:
+            i2c.nak = !!(ifg & TWI_SR_TXCOMP);
+            I2C_PERIPH->TWI_CR = TWI_CR_STOP; // Stop condition
+            I2C_PERIPH->TWI_IDR = TWI_IDR_TXRDY|TWI_IDR_RXRDY|TWI_IDR_NACK;
+            i2c.state = I2CState_Idle;
             break;
 
         case I2CState_AwaitCompletion:

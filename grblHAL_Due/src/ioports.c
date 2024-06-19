@@ -31,8 +31,6 @@ static input_signal_t *aux_in;
 static output_signal_t *aux_out;
 static volatile uint32_t event_bits;
 
-static uint8_t n_analog_in = 1;
-
 static bool digital_out_cfg (xbar_t *output, gpio_out_config_t *config, bool persistent)
 {
     if(output->id < digital.out.n_ports) {
@@ -174,8 +172,7 @@ static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wai
     if(type == Port_Digital && port < digital.in.n_ports) {
         port = ioports_map(digital.in, port);
         value = get_input(&aux_in[port], (settings.ioport.invert_in.mask >> port) & 0x01, wait_mode, timeout);
-    } else if(port < n_analog_in)
-        value = analogRead(10);
+    }
 
     return value;
 }
@@ -327,11 +324,6 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
     aux_in = aux_inputs->pins.inputs;
     aux_out = aux_outputs->pins.outputs;
-
-    if((hal.port.num_analog_in = n_analog_in)) {
-        analogReadResolution(12);
-        hal.port.wait_on_input = wait_on_input;
-    }
 
     hal.port.set_pin_description = set_pin_description;
 

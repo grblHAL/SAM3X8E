@@ -166,6 +166,12 @@ static input_signal_t inputpin[] = {
 #ifdef AUXINPUT4_PIN
     { .id = Input_Aux4,         .port = AUXINPUT4_PORT,    .pin = AUXINPUT4_PIN,     .group = PinGroup_AuxInput }
 #endif
+#ifdef AUXINTPUT0_ANALOG_PIN
+    { .id = Input_Analog_Aux0,  .port = AUXINTPUT0_ANALOG_PORT, .pin = AUXINTPUT0_ANALOG_PIN, .group = PinGroup_AuxInputAnalog },
+#endif
+#ifdef AUXINTPUT1_ANALOG_PIN
+    { .id = Input_Analog_Aux1,  .port = AUXINTPUT1_ANALOG_PORT, .pin = AUXINTPUT1_ANALOG_PIN, .group = PinGroup_AuxInputAnalog }
+#endif
 };
 
 static output_signal_t outputpin[] = {
@@ -1273,6 +1279,9 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 
             input = &inputpin[--i];
 
+            if(input->group == PinGroup_AuxInputAnalog)
+                continue;
+
             if(!(input->group == PinGroup_AuxInput || input->group == PinGroup_MPG))
                 input->mode.irq_mode = IRQ_Mode_None;
 
@@ -1724,7 +1733,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "2400408";
+    hal.driver_version = "240619";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1884,13 +1893,18 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
 
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
+#if AUX_ANALOG
+    static pin_group_pins_t aux_analog_in = {0}, aux_analog_out = {0};
+#endif
 
     input_signal_t *input;
 
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
+
         input = &inputpin[i];
         input->bit = 1 << input->pin;
         input->mode.input = input->cap.input = On;
+
         if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = input;
@@ -1912,13 +1926,21 @@ bool driver_init (void)
             limit_inputs.n_pins++;
         } else if(input->group == PinGroup_Control)
             input->mode.debounce = hal.driver_cap.software_debounce;
+        else if(input->group == PinGroup_AuxInputAnalog) {
+           if(aux_analog_in.pins.inputs == NULL)
+               aux_analog_in.pins.inputs = input;
+           input->id = (pin_function_t)(Input_Analog_Aux0 + aux_analog_in.n_pins++);
+           input->mode.analog = input->cap.analog = On;
+       }
     }
 
     output_signal_t *output;
 
     for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+
         output = &outputpin[i];
         output->mode.output = On;
+
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
@@ -1927,6 +1949,14 @@ bool driver_init (void)
     }
 
     ioports_init(&aux_inputs, &aux_outputs);
+
+#if AUX_ANALOG
+
+  #ifndef MCP3221_ENABLE
+    if(aux_analog_in.n_pins || aux_analog_out.n_pins)
+  #endif
+        ioports_init_analog(&aux_analog_in, &aux_analog_out);
+#endif
 
 #if AUX_CONTROLS_ENABLED
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);

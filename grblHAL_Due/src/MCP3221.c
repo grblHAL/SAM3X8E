@@ -1,11 +1,11 @@
 /*
-  i2c.h - I2C interface
+  MCP3221.c - analog input from a MCP3221 I2C ADC
 
-  Driver code for Atmel SAM3X8E ARM processor
+  Driver code for STM32F4xx processors
 
   Part of grblHAL
 
-  Copyright (c) 2019-2024 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,27 +21,27 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __I2C_DRIVER_H__
-#define __I2C_DRIVER_H__
-
 #include "driver.h"
-#include "grbl/plugins.h"
 
-#if TRINAMIC_ENABLE == 2130 && TRINAMIC_I2C
+#ifdef MCP3221_ENABLE
 
-#include "trinamic/trinamic2130.h"
-#include "trinamic/TMC2130_I2C_map.h"
+#include "i2c.h"
+#include "MCP3221.h"
 
-#define I2C_ADR_I2CBRIDGE 0x47
+uint16_t MCP3221_read (void)
+{
+    uint8_t value[2];
 
-void I2C_DriverInit (TMC_io_driver_t *drv);
+    i2c_receive(MCP3221_ENABLE, value, 2, true);
 
-#endif
+    return (value[0] << 8) | value[1];
+}
 
-void i2c_init (void);
-bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t size, bool block);
+bool MCP3221_init (void)
+{
+    i2c_init();
 
-uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block);
-uint8_t *i2c_readregister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block);
+    return i2c_probe(MCP3221_ENABLE);
+}
 
 #endif

@@ -30,12 +30,12 @@
   -Comment //Correcting Ramps 1.6  if has same layout with Ramps 1.6 pin mapping, just my recheck prosess
 
 
-  Function      Due   Ramps 1.6     Ramps Smart
+  Function       Due   Ramps 1.6     Ramps Smart
 
-  COOLANT_FLOOD A9    AUX-2 (4)     THERM0 JP7 (2) !!!
+  COOLANT_FLOOD   A9    AUX-2 (4)     THERM0 JP7 (2) !!!
 
   RESET           A3      D2 AUX-1 (3)  A3 AUX-2 (3)
-  FEED_HOLD     A5    A5 AUX-2 (3)  A5 AUX-2 (5)
+  FEED_HOLD       A5    A5 AUX-2 (3)  A5 AUX-2 (5)
   CYCLE_START     A4      D1 AUX-1 (4)  A4 AUX-2 (4)
 
   AUXOUTPUT0      D53     AUX-3 (6)     AUX-3 (8)
@@ -50,12 +50,14 @@
 #endif
 
 #define BOARD_NAME "Ramps SMART"
+#define BOARD_URL "https://reprap.org/wiki/SMART_RAMPS"
 
-// v1.4.1 and v1.4.2 has a 32kbit EEPROM mounted(?)
-// Uncomment the following lines to enable - NOTE: not tested!
-//#undef EEPROM_ENABLE
-//#define EEPROM_ENABLE 2
-//#define I2C_ENABLE 2
+// v1.4.1 and v1.4.2 has a 256kbit EEPROM mounted
+
+#if I2C_ENABLE
+#undef I2C_ENABLE
+#define I2C_ENABLE 2
+#endif
 
 // Define step pulse output pins.
 #define X_STEP_PORT         PIOA
@@ -163,29 +165,34 @@
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOB
-#define COOLANT_FLOOD_PIN   15  // Due A9 & Ramps THERM0 / Connector JP7 (2/6)              //!!! Ramps 1.6 A9 goes AUX-2 (4/10) !!!
+#define COOLANT_FLOOD_PORT      PIOB
+#define COOLANT_FLOOD_PIN       15  // Due A9 & Ramps THERM0 / Connector JP7 (2/6)              //!!! Ramps 1.6 A9 goes AUX-2 (4/10) !!!
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOA
-#define RESET_PIN           22  // DUE A3 & Ramps A3 / AUX-2 Connector U$10 (3/10)          //!!! Ramps 1.6 D2 goes AUX-1 A-OUT 3 which Ramps Smart doesnt have !!!
-#define FEED_HOLD_PORT      PIOA
-#define FEED_HOLD_PIN       4   // DUE A5 & Ramps A5 / AUX-2 Connector U$10 (5/10)          //!!! Ramps 1.6 A5 goes AUX-2 (3/10) !!!
-#define CYCLE_START_PORT    PIOA
-#define CYCLE_START_PIN     6   // DUE A4 & Ramps A4 / AUX-2 Connector U$10 (4/10)          //!!! Ramps 1.6 D1 goes AUX-1 A-OUT 4 which Ramps Smart doesnt have !!!
+#define RESET_PORT              PIOA
+#define RESET_PIN               22  // DUE A3 & Ramps A3 / AUX-2 Connector U$10 (3/10)          //!!! Ramps 1.6 D2 goes AUX-1 A-OUT 3 which Ramps Smart doesnt have !!!
+#define FEED_HOLD_PORT          PIOA
+#define FEED_HOLD_PIN           4   // DUE A5 & Ramps A5 / AUX-2 Connector U$10 (5/10)          //!!! Ramps 1.6 A5 goes AUX-2 (3/10) !!!
+#define CYCLE_START_PORT        PIOA
+#define CYCLE_START_PIN         6   // DUE A4 & Ramps A4 / AUX-2 Connector U$10 (4/10)          //!!! Ramps 1.6 D1 goes AUX-1 A-OUT 4 which Ramps Smart doesnt have !!!
 
-#define AUXINPUT0_PORT      PIOA
-#define AUXINPUT0_PIN       14  // Due D23 & Ramps D23 / AUX-4 Connector U$9 (16/18)        //Correcting Ramps 1.6
-#define AUXINPUT1_PORT      PIOD
-#define AUXINPUT1_PIN       0   // Due D25 & Ramps D25 / AUX-4 Connector U$9 (15/18)        //Correcting Ramps 1.6
-#define AUXINPUT2_PORT      PIOD
-#define AUXINPUT2_PIN       2   // Due D27 & Ramps D27 / AUX-4 Connector U$9 (14/18)        //Correcting Ramps 1.6
+#define AUXINPUT0_PORT          PIOA
+#define AUXINPUT0_PIN           14  // Due D23 & Ramps D23 / AUX-4 Connector U$9 (16/18)        //Correcting Ramps 1.6
+#define AUXINPUT1_PORT          PIOD
+#define AUXINPUT1_PIN           0   // Due D25 & Ramps D25 / AUX-4 Connector U$9 (15/18)        //Correcting Ramps 1.6
+#define AUXINPUT2_PORT          PIOD
+#define AUXINPUT2_PIN           2   // Due D27 & Ramps D27 / AUX-4 Connector U$9 (14/18)        //Correcting Ramps 1.6
 
-#define AUXOUTPUT0_PORT     PIOB
-#define AUXOUTPUT0_PIN      14  // Due D53 & Ramps D53 / AUX-3 Connector U$1 (8/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (6/8)
-#define AUXOUTPUT1_PORT     PIOC
-#define AUXOUTPUT1_PIN      12  // Due D51 & Ramps D51 / MOSI / AUX-3 Connector U$1 (6/10)  //Ramps 1.6 Has different style AUX-3 port but pin is there (4/8)
-#define AUXOUTPUT2_PORT     PIOC
-#define AUXOUTPUT2_PIN      14  // Due D49 & Ramps D49 / AUX-3 Connector U$1 (4/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (2/8)
+#define AUXOUTPUT0_PORT         PIOB
+#define AUXOUTPUT0_PIN          14  // Due D53 & Ramps D53 / AUX-3 Connector U$1 (8/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (6/8)
+#define AUXOUTPUT1_PORT         PIOC
+#define AUXOUTPUT1_PIN          12  // Due D51 & Ramps D51 / MOSI / AUX-3 Connector U$1 (6/10)  //Ramps 1.6 Has different style AUX-3 port but pin is there (4/8)
+#define AUXOUTPUT2_PORT         PIOC
+#define AUXOUTPUT2_PIN          14  // Due D49 & Ramps D49 / AUX-3 Connector U$1 (4/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (2/8)
+
+#define AUXINTPUT0_ANALOG_PORT  PIOB
+#define AUXINTPUT0_ANALOG_PIN   19 // Due A10
+#define AUXINTPUT1_ANALOG_PORT  PIOB
+#define AUXINTPUT1_ANALOG_PIN   20 // Due A11
 
 /**/
