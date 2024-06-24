@@ -16,6 +16,7 @@
     "probe": 1,
     "safety_door": 1,
     "mpg_mode": 1,
+    "mcp3221_adc": 1,
     "pio_board": "due",
     "build_dir": "grblHAL_Due",
     "plugins": [
@@ -75,6 +76,7 @@
         "axes": 5,
         "digital_in": 3,
         "digital_out": 3,
+        "probe": 0,
         "safety_door": 0,
         "eeprom": 1,
         "serial_ports": 1
