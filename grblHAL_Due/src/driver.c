@@ -1926,12 +1926,14 @@ bool driver_init (void)
             limit_inputs.n_pins++;
         } else if(input->group == PinGroup_Control)
             input->mode.debounce = hal.driver_cap.software_debounce;
+#if AUX_ANALOG
         else if(input->group == PinGroup_AuxInputAnalog) {
            if(aux_analog_in.pins.inputs == NULL)
                aux_analog_in.pins.inputs = input;
            input->id = (pin_function_t)(Input_Analog_Aux0 + aux_analog_in.n_pins++);
            input->mode.analog = input->cap.analog = On;
        }
+#endif
     }
 
     output_signal_t *output;
