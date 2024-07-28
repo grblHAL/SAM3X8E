@@ -149,17 +149,17 @@
 #define AUXOUTPUT1_PIN      8
 #endif
 
-// Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOA
-#define COOLANT_FLOOD_PIN   22
+// // Define flood and mist coolant enable output pins.
+// #define COOLANT_FLOOD_PORT  PIOA
+// #define COOLANT_FLOOD_PIN   22
 
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOA
-#define RESET_PIN           16
-#define FEED_HOLD_PORT      PIOA
-#define FEED_HOLD_PIN       24
-#define CYCLE_START_PORT    PIOA
-#define CYCLE_START_PIN     23
+// // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
+// #define RESET_PORT          PIOA
+// #define RESET_PIN           16
+// #define FEED_HOLD_PORT      PIOA
+// #define FEED_HOLD_PIN       24
+// #define CYCLE_START_PORT    PIOA
+// #define CYCLE_START_PIN     23
 
 // Define probe switch input pin.
 // NA
