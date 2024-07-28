@@ -34,7 +34,7 @@
 // Configuration
 // Uncomment to enable.
 
-//#define USB_SERIAL_CDC       1 // Use native USB port for communication.
+#define USB_SERIAL_CDC       1 // Use native USB port for communication.
 //#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
