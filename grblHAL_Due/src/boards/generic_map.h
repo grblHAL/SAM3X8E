@@ -48,12 +48,12 @@
 #define Z_ENABLE_PIN            17
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PORT            PIOB // C28
+#define X_LIMIT_PORT            PIOB // 02
 #define X_LIMIT_PIN             25
 
-#define Y_LIMIT_PORT            PIOD // D14
+#define Y_LIMIT_PORT            PIOD // ??
 #define Y_LIMIT_PIN             25
-#define Z_LIMIT_PORT            PIOC // A11
+#define Z_LIMIT_PORT            PIOC // 06
 #define Z_LIMIT_PIN             24
 
 // Define driver spindle pins
@@ -92,16 +92,16 @@
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT              PIOC
 #define RESET_PIN               12
-#define FEED_HOLD_PORT          PIOC
+#define FEED_HOLD_PORT          PIOC // 49
 #define FEED_HOLD_PIN           14
 #define CYCLE_START_PORT        PIOC
 #define CYCLE_START_PIN         16
 
-#define AUXINPUT0_PORT          PIOC
+#define AUXINPUT0_PORT          PIOC // 45
 #define AUXINPUT0_PIN           18
 #define AUXINPUT1_PORT          PIOA // I2C strobe
 #define AUXINPUT1_PIN           4
-#define AUXINPUT2_PORT          PIOC // Probe
+#define AUXINPUT2_PORT          PIOC // Probe 50
 #define AUXINPUT2_PIN           13
 
 #if PROBE_ENABLE

@@ -73,23 +73,23 @@ void IRQUnRegister(int32_t IRQnum);
 #define STEP_TIMER_IRQn     TC1_IRQn
 
 #ifdef BOARD_TINYG2_DUE
-    #include "tinyg2_due_map.h"
+    #include "boards/tinyg2_due_map.h"
 #elif defined(BOARD_RAMPS_16)
-    #include "ramps_1.6_map.h"
+    #include "boards/ramps_1.6_map.h"
 #elif defined(BOARD_RAMPS_SMART)
-    #include "ramps_smart_map.h"
+    #include "boards/ramps_smart_map.h"
 #elif defined(BOARD_CMCGRATH)
-    #include "cmcgrath_rev3_map.h"
+    #include "boards/cmcgrath_rev3_map.h"
 #elif defined(BOARD_MEGA256)
-    #include "mega_2560_map.h"
+    #include "boards/mega_2560_map.h"
 #elif defined(BOARD_PROTONEER)
-    #include "protoneer_3.xx_map.h"
+    #include "boards/protoneer_3.xx_map.h"
 #elif defined(BOARD_RADDS_16)
-    #include "radds_1.6_map.h"
+    #include "boards/radds_1.6_map.h"
 #elif defined(BOARD_MY_MACHINE)
-    #include "my_machine_map.h"
+    #include "boards/my_machine_map.h"
 #else
-    #include "generic_map.h"
+    #include "boards/generic_map.h"
 #endif
 
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
