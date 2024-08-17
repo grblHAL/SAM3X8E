@@ -147,7 +147,7 @@ void IRQUnRegister(int32_t IRQnum);
 #error I2C strobe not supported!
 #endif
 
-#if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
+#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
 #error "MPG_MODE_PIN must be defined!"
 #endif
 

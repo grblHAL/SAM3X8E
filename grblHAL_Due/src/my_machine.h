@@ -50,12 +50,12 @@
 //#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define PLASMA_ENABLE           1 // Plasma/THC plugin.
 //#define OPENPNP_ENABLE          1 // OpenPNP plugin. To be completed.
-//#define MPG_ENABLE              1 // Enable MPG interface. Requires a serial port and means to switch between normal and MPG mode.
-                                    // 1: Mode switching is by handshake pin input unless the keypad plugin is enabled in mode 2 which
-                                    //    uses mode switching by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
-                                    // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE command character. The keypad plugin is not required.
+//#define MPG_ENABLE              1 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
+                                    // 1: Mode switching is by handshake pin.
+                                    // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
 //#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
-                                    // 2: uses a serial port for input. If MPG_ENABLE is set to 1 the serial stream is shared with the MPG.
+                                    // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
+
 //#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
 //#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
 //#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
