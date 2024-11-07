@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2022 Terje Io
+  Copyright (c) 2019-2024 Terje Io
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,6 @@ static io_stream_properties_t serial[] = {
       .instance = 0,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
       .claim = serialInit
@@ -47,7 +46,6 @@ static io_stream_properties_t serial[] = {
       .instance = 1,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
       .claim = serial2Init
@@ -265,7 +263,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .state.connected = true,
+        .is_connected = stream_connected,
         .read = serialGetC,
         .write = serialWriteS,
         .write_n =  serialWrite,
@@ -579,7 +577,7 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
     static const io_stream_t stream = {
         .type = StreamType_Serial,
         .instance = 1,
-        .state.connected = true,
+        .is_connected = stream_connected,
         .read = serial2GetC,
         .write = serial2WriteS,
         .write_n =  serial2Write,
