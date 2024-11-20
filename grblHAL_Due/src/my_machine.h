@@ -34,20 +34,21 @@
 // Configuration
 // Uncomment to enable.
 
-//#define USB_SERIAL_CDC       1 // Use native USB port for communication.
-//#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
+//#define USB_SERIAL_CDC          1 // Use native USB port for communication.
+//#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module. Requires and claims one auxiliary input pin.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
 // depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
 // If none are specified the default PWM spindle is instantiated.
 // Spindle definitions can be found in grbl/spindle_control.h.
 // More here https://github.com/grblHAL/Plugins_spindle
-//#define SPINDLE0_ENABLE      SPINDLE_HUANYANG1
-//#define SPINDLE1_ENABLE      SPINDLE_PWM0
-//#define SPINDLE2_ENABLE      SPINDLE_NONE
-//#define SPINDLE2_ENABLE      SPINDLE_NONE
+//#define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE         SPINDLE_PWM0
+//#define SPINDLE2_ENABLE         SPINDLE_NONE
+//#define SPINDLE2_ENABLE         SPINDLE_NONE
+//#define SPINDLE_OFFSET          1 // Uncomment to enable settings for laser spindle XY-offset.
 // **********************
-//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
 //#define PLASMA_ENABLE           1 // Plasma/THC plugin.
 //#define OPENPNP_ENABLE          1 // OpenPNP plugin. To be completed.
 //#define MPG_ENABLE              1 // Enable MPG interface. Requires a serial stream and means to switch between normal and MPG mode.
@@ -61,6 +62,13 @@
 //#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
 //#define MCP3221_ENABLE       0x4D // Enable MCP3221 I2C ADC input with address 0x4D (0b01001101).
+//#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
+//#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
+//#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
+//#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxiliary outputs.
+//#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
+//#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
+//#define HOMING_PULLOFF_ENABLE   1 // Enable per axis homing pulloff distance settings.
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
