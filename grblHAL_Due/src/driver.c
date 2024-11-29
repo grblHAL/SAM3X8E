@@ -26,7 +26,6 @@
 #include "serial.h"
 
 #define AUX_DEVICES // until all drivers are converted?
-
 #include "grbl/machine_limits.h"
 #include "grbl/crossbar.h"
 #include "grbl/motor_pins.h"
@@ -1589,7 +1588,7 @@ static bool driver_setup (settings_t *settings)
 
  // Set defaults
 
-    IOInitDone = settings->version == 22;
+    IOInitDone = settings->version.id == 22;
 
     hal.settings_changed(settings, (settings_changed_flags_t){0});
 

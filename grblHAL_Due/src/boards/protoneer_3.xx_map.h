@@ -3,20 +3,20 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2023 Terje Io
+  Copyright (c) 2019-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if N_ABC_MOTORS
@@ -94,8 +94,13 @@
 #define CYCLE_START_PORT        PIOA
 #define CYCLE_START_PIN         23
 
+#define AUXINPUT0_PORT          PIOA
+#define AUXINPUT0_PIN           4
+
 // Define probe switch input pin.
-#define PROBE_PORT              PIOA
-#define PROBE_PIN               4
+#if PROBE_ENABLE
+#define PROBE_PORT              AUXINPUT0_PORT
+#define PROBE_PIN               AUXINPUT0_PIN
+#endif
 
 /**/
