@@ -26,6 +26,7 @@
 #include "serial.h"
 
 #define AUX_DEVICES // until all drivers are converted?
+
 #include "grbl/machine_limits.h"
 #include "grbl/crossbar.h"
 #include "grbl/motor_pins.h"
@@ -58,11 +59,21 @@
 #endif
 
 static bool IOInitDone = false;
-static uint32_t pulse_length, pulse_delay;
-static axes_signals_t next_step_outbits;
 static pin_debounce_t debounce;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static input_signal_t *a_signals[10] = {0}, *b_signals[10] = {0}, *c_signals[10] = {0}, *d_signals[10] = {0};
+static struct {
+    uint16_t length;
+    uint16_t delay;
+    axes_signals_t out;
+#if STEP_INJECT_ENABLE
+    struct {
+        axes_signals_t claimed;
+        volatile axes_signals_t axes;
+        volatile axes_signals_t out;
+    } inject;
+#endif
+} step_pulse = {0};
 #ifdef PROBE_PIN
 static probe_state_t probe = {
     .connected = On
@@ -356,60 +367,118 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         callback();
 }
 
-#if STEP_INJECT_ENABLE
-
-static axes_signals_t pulse_output = {0};
-
-void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
-{
-    pulse_output = step_outbits;
-    dir_outbits.value ^= settings.steppers.dir_invert.mask;
-
-    BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_outbits.z;
-}
-
-#endif
-
 // Set stepper pulse output pins
 
 #ifdef SQUARING_ENABLED
 
-inline static __attribute__((always_inline)) void set_step_outputs (axes_signals_t step_outbits_1)
+inline static __attribute__((always_inline)) void set_step_outputs (axes_signals_t step_out1)
 {
-    axes_signals_t step_outbits_2;
+    axes_signals_t step_out2;
 
 #if STEP_INJECT_ENABLE
-    step_outbits_1.value |= pulse_output.value;
-    pulse_output.value = 0;
+
+    axes_signals_t axes = { .bits = step_pulse.inject.axes.bits };
+
+    if(axes.bits) {
+
+        step_out2.bits = step_out1.bits & motors_2.bits;
+        step_out1.bits = step_out1.bits & motors_1.bits;
+
+        uint_fast8_t idx, mask = 1;
+        axes_signals_t step1 = { .bits = step_out1.bits },
+                       step2 = { .bits = step_out2.bits };
+
+        step_out1.bits ^= settings.steppers.step_invert.bits;
+        step_out2.bits ^= settings.steppers.step_invert.bits;
+
+        for(idx = 0; idx < N_AXIS; idx++) {
+
+            if(!(axes.bits & mask)) {
+
+                if(step2.bits & mask) switch(idx) {
+#ifdef X2_STEP_PIN
+                    case X_AXIS:
+                        BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_out2.x;
+                        break;
 #endif
+#ifdef Y2_STEP_PIN
+                    case Y_AXIS:
+                        BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_out2.y;
+                        break;
+#endif
+#ifdef Z2_STEP_PIN
+                    case Z_AXIS:
+                        BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_out2.z;
+                        break;
+#endif
+                }
+            }
 
-    step_outbits_2.mask = (step_outbits_1.mask & motors_2.mask) ^ settings.steppers.step_invert.mask;
-    step_outbits_1.mask = (step_outbits_1.mask & motors_1.mask) ^ settings.steppers.step_invert.mask;
+            if(step1.bits & mask) switch(idx) {
 
-    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_outbits_1.x;
+                case X_AXIS:
+                    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_out1.x;
+                    break;
+
+                case Y_AXIS:
+                    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_out1.y;
+                    break;
+
+                case Z_AXIS:
+                    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_out1.z;
+                    break;
+#ifdef A_AXIS
+                case A_AXIS:
+                    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_out1.a;
+                    break;
+#endif
+#ifdef B_AXIS
+                case B_AXIS:
+                    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out1.b;
+                    break
+#endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out1.c;
+                    break
+#endif
+            }
+            mask <<= 1;
+        }
+    } else {
+
+#endif // STEP_INJECT_ENABLE
+
+    step_out2.bits = (step_out1.bits & motors_2.bits) ^ settings.steppers.step_invert.bits;
+    step_out1.bits = (step_out1.bits & motors_1.bits) ^ settings.steppers.step_invert.bits;
+
+    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_out1.x;
   #ifdef X2_STEP_PIN
-    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_outbits_2.x;
+    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_out2.x;
   #endif
 
-    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_outbits_1.y;
+    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_out1.y;
   #ifdef Y2_STEP_PIN
-    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_outbits_2.y;
+    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_out2.y;
   #endif
  
-    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_outbits_1.z;
+    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_out1.z;
   #ifdef Z2_STEP_PIN
-    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_outbits_2.z;
+    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_out2.z;
   #endif
 
   #ifdef A_STEP_PIN
-    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_outbits_1.a;
+    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_out1.a;
   #endif
   #ifdef B_STEP_PIN
-    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_outbits_1.b;
+    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out1.b;
   #endif
   #ifdef C_STEP_PIN
-    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_outbits_1.c;
+    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out1.c;
   #endif
+#if STEP_INJECT_ENABLE
+    }
+#endif
 }
 
 // Enable/disable motors for auto squaring of ganged axes
@@ -421,39 +490,95 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 
 #else // SQUARING DISABLED
 
-inline static void __attribute__((always_inline)) set_step_outputs (axes_signals_t step_outbits)
+inline static void __attribute__((always_inline)) set_step_outputs (axes_signals_t step_out)
 {
 #if STEP_INJECT_ENABLE
-    step_outbits.value |= pulse_output.value;
-    pulse_output.value = 0;
+
+    axes_signals_t axes = { .bits = step_pulse.inject.axes.bits };
+
+    if(axes.bits) {
+
+        uint_fast8_t idx, mask = 1;
+
+        step_out.bits ^= settings.steppers.step_invert.bits;
+
+        for(idx = 0; idx < N_AXIS; idx++) {
+
+            if(!(axes.bits & mask)) switch(idx) {
+
+                case X_AXIS:
+                    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_out.x;
+#ifdef X2_STEP_PIN
+                    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_out.x;
 #endif
+                    break;
 
-    step_outbits.value ^= settings.steppers.step_invert.mask;
+                case Y_AXIS:
+                    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_out.y;
+#ifdef Y2_STEP_PIN
+                    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_out.y;
+#endif
+                    break;
 
-    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_outbits.x;
+                case Z_AXIS:
+                    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_out.z;
+#ifdef Z2_STEP_PIN
+                    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_out.z;
+#endif
+                    break;
+
+#ifdef A_AXIS
+                case A_AXIS:
+                    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_out.a;
+                    break;
+
+#endif
+#ifdef B_AXIS
+                case B_AXIS:
+                    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out.b;
+                    break
+#endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
+                    break
+#endif
+            }
+            mask <<= 1;
+        }
+    } else {
+
+#endif // STEP_INJECT_ENABLE
+
+    step_out.value ^= settings.steppers.step_invert.mask;
+
+    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_out.x;
   #ifdef X2_STEP_PIN
-    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_outbits.x;
+    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_out.x;
   #endif
     
-    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_outbits.y;
+    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_out.y;
   #ifdef Y2_STEP_PIN
-    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_outbits.y;
+    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_out.y;
   #endif
 
-    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_outbits.z;
+    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_out.z;
   #ifdef Z2_STEP_PIN
-    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_outbits.z;
+    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_out.z;
   #endif 
 
   #ifdef A_STEP_PIN
-    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_outbits.a;
+    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_out.a;
   #endif
   #ifdef B_STEP_PIN
-    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_outbits.b;
+    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out.b;
   #endif
   #ifdef C_STEP_PIN
-    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_outbits.c;
+    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
   #endif
+#if STEP_INJECT_ENABLE
+    }
+#endif
 }
 
 #endif
@@ -492,36 +617,96 @@ static axes_signals_t getGangedAxes (bool auto_squared)
 #endif
 
 // Set stepper direction output pins
-inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_t dir_outbits)
+inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_t dir_out)
 {
-    dir_outbits.mask ^= settings.steppers.dir_invert.mask;
+#if STEP_INJECT_ENABLE
 
-    BITBAND_PERI(X_DIRECTION_PORT->PIO_ODSR, X_DIRECTION_PIN) = dir_outbits.x;
-    BITBAND_PERI(Y_DIRECTION_PORT->PIO_ODSR, Y_DIRECTION_PIN) = dir_outbits.y;
-    BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_outbits.z;
+    axes_signals_t axes = { .bits = step_pulse.inject.axes.bits };
+
+    if(axes.bits) {
+
+        uint_fast8_t idx, mask = 1;
+
+        dir_out.bits ^= settings.steppers.dir_invert.bits;
+
+        for(idx = 0; idx < N_AXIS; idx++) {
+
+            if(!(axes.bits & mask)) switch(idx) {
+
+                case X_AXIS:
+                    BITBAND_PERI(X_DIRECTION_PORT->PIO_ODSR, X_DIRECTION_PIN) = dir_out.x;
+#ifdef X2_DIRECTION_PIN
+                    BITBAND_PERI(X2_DIRECTION_PORT->PIO_ODSR, X2_DIRECTION_PIN) = dir_out.x ^ settings.steppers.ganged_dir_invert.x;
+#endif
+                    break;
+
+                case Y_AXIS:
+                    BITBAND_PERI(Y_DIRECTION_PORT->PIO_ODSR, Y_DIRECTION_PIN) = dir_out.y;
+#ifdef Y2_DIRECTION_PIN
+                    BITBAND_PERI(Y2_DIRECTION_PORT->PIO_ODSR, Y2_DIRECTION_PIN) = dir_out.y ^ settings.steppers.ganged_dir_invert.y;
+#endif
+                    break;
+
+                case Z_AXIS:
+                    BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_out.z;
+#ifdef Z2_DIRECTION_PIN
+                    BITBAND_PERI(Z2_DIRECTION_PORT->PIO_ODSR, Z2_DIRECTION_PIN) = dir_out.z ^ settings.steppers.ganged_dir_invert.z;
+#endif
+                    break;
+#ifdef A_AXIS
+                case A_AXIS:
+                    BITBAND_PERI(A_DIRECTION_PORT->PIO_ODSR, A_DIRECTION_PIN) = dir_out.a;
+                    break;
+#endif
+#ifdef B_AXIS
+                case B_AXIS:
+                    BITBAND_PERI(B_DIRECTION_PORT->PIO_ODSR, B_DIRECTION_PIN) = dir_out.b;
+                    break;
+#endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
+                    break;
+#endif
+            }
+            mask <<= 1;
+        }
+    } else {
+
+#endif // STEP_INJECT_ENABLE
+
+    dir_out.mask ^= settings.steppers.dir_invert.mask;
+
+    BITBAND_PERI(X_DIRECTION_PORT->PIO_ODSR, X_DIRECTION_PIN) = dir_out.x;
+    BITBAND_PERI(Y_DIRECTION_PORT->PIO_ODSR, Y_DIRECTION_PIN) = dir_out.y;
+    BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_out.z;
 
 #ifdef GANGING_ENABLED
-    dir_outbits.mask ^= settings.steppers.ganged_dir_invert.mask;
+    dir_out.mask ^= settings.steppers.ganged_dir_invert.mask;
   #ifdef X2_DIRECTION_PIN
-    BITBAND_PERI(X2_DIRECTION_PORT->PIO_ODSR, X2_DIRECTION_PIN) = dir_outbits.x;
+    BITBAND_PERI(X2_DIRECTION_PORT->PIO_ODSR, X2_DIRECTION_PIN) = dir_out.x;
   #endif
   #ifdef Y2_DIRECTION_PIN
-    BITBAND_PERI(Y2_DIRECTION_PORT->PIO_ODSR, Y2_DIRECTION_PIN) = dir_outbits.y;
+    BITBAND_PERI(Y2_DIRECTION_PORT->PIO_ODSR, Y2_DIRECTION_PIN) = dir_out.y;
   #endif
   #ifdef Z2_DIRECTION_PIN
-    BITBAND_PERI(Z2_DIRECTION_PORT->PIO_ODSR, Z2_DIRECTION_PIN) = dir_outbits.z;
+    BITBAND_PERI(Z2_DIRECTION_PORT->PIO_ODSR, Z2_DIRECTION_PIN) = dir_out.z;
   #endif
 #endif
 
   #ifdef A_DIRECTION_PIN
-    BITBAND_PERI(A_DIRECTION_PORT->PIO_ODSR, A_DIRECTION_PIN) = dir_outbits.a;
+    BITBAND_PERI(A_DIRECTION_PORT->PIO_ODSR, A_DIRECTION_PIN) = dir_out.a;
   #endif
   #ifdef B_DIRECTION_PIN
-    BITBAND_PERI(B_DIRECTION_PORT->PIO_ODSR, B_DIRECTION_PIN) = dir_outbits.b;
+    BITBAND_PERI(B_DIRECTION_PORT->PIO_ODSR, B_DIRECTION_PIN) = dir_out.b;
   #endif
   #ifdef C_DIRECTION_PIN
-    BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_outbits.c;
+    BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
   #endif
+
+#if STEP_INJECT_ENABLE
+    }
+#endif
 }
 
 // Enable/disable stepper motors
@@ -612,11 +797,11 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
         if(stepper->step_outbits.value) {
 
-            next_step_outbits = stepper->step_outbits; // Store out_bits
+            step_pulse.out = stepper->step_outbits; // Store out_bits
 
             IRQRegister(STEP_TIMER_IRQn, STEPDELAY_IRQHandler);
 
-            STEP_TIMER.TC_RC = pulse_delay;
+            STEP_TIMER.TC_RC = step_pulse.delay;
             STEP_TIMER.TC_CCR = TC_CCR_SWTRG;
         }
 
@@ -628,6 +813,149 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
         STEP_TIMER.TC_CCR = TC_CCR_SWTRG;
     }
 }
+
+#if STEP_INJECT_ENABLE
+
+static void output_pulse_isr (void);
+static void output_pulse_isr_delayed (void);
+
+static inline __attribute__((always_inline)) void inject_step (axes_signals_t step_out, axes_signals_t axes)
+{
+    uint_fast8_t idx = N_AXIS - 1, mask = 1 << (N_AXIS - 1);
+
+    step_out.bits ^= settings.steppers.step_invert.bits;
+
+    do {
+        if(axes.bits & mask) {
+
+            axes.bits ^= mask;
+
+            switch(idx) {
+
+                case X_AXIS:
+                    BITBAND_PERI(X_STEP_PORT->PIO_ODSR, X_STEP_PIN) = step_out.x;
+#ifdef X2_STEP_PIN
+                    BITBAND_PERI(X2_STEP_PORT->PIO_ODSR, X2_STEP_PIN) = step_out.x;
+#endif
+                    break;
+
+                case Y_AXIS:
+                    BITBAND_PERI(Y_STEP_PORT->PIO_ODSR, Y_STEP_PIN) = step_out.y;
+#ifdef Y2_STEP_PIN
+                    BITBAND_PERI(Y2_STEP_PORT->PIO_ODSR, Y2_STEP_PIN) = step_out.y;
+#endif
+                    break;
+
+                case Z_AXIS:
+                    BITBAND_PERI(Z_STEP_PORT->PIO_ODSR, Z_STEP_PIN) = step_out.z;
+#ifdef Z2_STEP_PIN
+                    BITBAND_PERI(Z2_STEP_PORT->PIO_ODSR, Z2_STEP_PIN) = step_out.z;
+#endif
+                    break;
+
+#ifdef A_AXIS
+                case A_AXIS:
+                    BITBAND_PERI(A_STEP_PORT->PIO_ODSR, A_STEP_PIN) = step_out.a;
+                    break;
+
+#endif
+#ifdef B_AXIS
+                case B_AXIS:
+                    BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out.b;
+                    break
+#endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
+                    break
+#endif
+            }
+        }
+        idx--;
+        mask >>= 1;
+    } while(axes.bits);
+}
+
+static void stepperClaimMotor (uint_fast8_t axis_id, bool claim)
+{
+    if(claim)
+        step_pulse.inject.claimed.mask |= ((1 << axis_id) & AXES_BITMASK);
+    else
+        step_pulse.inject.claimed.mask &= ~(1 << axis_id);
+}
+
+void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
+{
+    if(step_out.bits) {
+
+        uint_fast8_t idx = N_AXIS - 1, mask = 1 << (N_AXIS - 1);
+        axes_signals_t axes = { .bits = step_out.bits };
+
+        step_pulse.inject.out = step_out;
+        step_pulse.inject.axes.bits = step_pulse.inject.claimed.bits | step_out.bits;
+        dir_out.bits ^= settings.steppers.dir_invert.bits;
+
+        do {
+            if(axes.bits & mask) {
+
+                axes.bits ^= mask;
+
+                switch(idx) {
+
+                    case X_AXIS:
+                        BITBAND_PERI(X_DIRECTION_PORT->PIO_ODSR, X_DIRECTION_PIN) = dir_out.x;
+#ifdef X2_DIRECTION_PIN
+                        BITBAND_PERI(X2_DIRECTION_PORT->PIO_ODSR, X2_DIRECTION_PIN) = dir_out.x ^ settings.steppers.ganged_dir_invert.x;
+#endif
+                        break;
+
+                    case Y_AXIS:
+                        BITBAND_PERI(Y_DIRECTION_PORT->PIO_ODSR, Y_DIRECTION_PIN) = dir_out.y;
+#ifdef Y2_DIRECTION_PIN
+                        BITBAND_PERI(Y2_DIRECTION_PORT->PIO_ODSR, Y2_DIRECTION_PIN) = dir_out.y ^ settings.steppers.ganged_dir_invert.y;
+#endif
+                        break;
+
+                    case Z_AXIS:
+                        BITBAND_PERI(Z_DIRECTION_PORT->PIO_ODSR, Z_DIRECTION_PIN) = dir_out.z;
+#ifdef Z2_DIRECTION_PIN
+                        BITBAND_PERI(Z2_DIRECTION_PORT->PIO_ODSR, Z2_DIRECTION_PIN) = dir_out.z ^ settings.steppers.ganged_dir_invert.z;
+#endif
+                        break;
+
+#ifdef A_AXIS
+                    case A_AXIS:
+                        BITBAND_PERI(A_DIRECTION_PORT->PIO_ODSR, A_DIRECTION_PIN) = dir_out.a;
+                        break;
+#endif
+#ifdef B_AXIS
+                    case B_AXIS:
+                        BITBAND_PERI(B_DIRECTION_PORT->PIO_ODSR, B_DIRECTION_PIN) = dir_out.b;
+                        break;
+#endif
+#ifdef C_AXIS
+                    case C_AXIS:
+                        BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
+                        break;
+#endif
+                }
+            }
+            idx--;
+            mask >>= 1;
+        } while(axes.bits);
+
+        if(step_pulse.delay) {
+            IRQRegister(STEP2_TIMER_IRQ, output_pulse_isr_delayed);
+            STEP2_TIMER.TC_RC = step_pulse.delay;
+            STEP2_TIMER.TC_CCR = TC_CCR_SWTRG;
+        } else {
+            inject_step(step_out, step_out);
+            STEP2_TIMER.TC_CCR = TC_CCR_SWTRG;
+        }
+    }
+}
+
+#endif // STEP_INJECT_ENABLE
 
 // Returns limit state as an limit_signals_t variable.
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
@@ -663,7 +991,7 @@ inline static limit_signals_t limitsGetState (void)
     signals.min2.y = BITBAND_PERI(Y2_LIMIT_PORT->PIO_PDSR, Y2_LIMIT_PIN);
 #endif
 #ifdef Z2_LIMIT_PIN
-    signals.min2.x = BITBAND_PERI(Z2_LIMIT_PORT->PIO_PDSR, Z2_LIMIT_PIN);
+    signals.min2.z = BITBAND_PERI(Z2_LIMIT_PORT->PIO_PDSR, Z2_LIMIT_PIN);
 #endif
 
 #ifdef X_LIMIT_PIN_MAX
@@ -919,18 +1247,18 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
 inline static void spindle_off (void)
 {
-    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = settings.spindle.invert.on;
+    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = settings.pwm_spindle.invert.on;
 }
 
 inline static void spindle_on (void)
 {
-    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = !settings.spindle.invert.on;
+    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = !settings.pwm_spindle.invert.on;
 }
 
 inline static void spindle_dir (bool ccw)
 {
 #ifdef SPINDLE_DIRECTION_PIN
-    BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) = (ccw ^ settings.spindle.invert.ccw);
+    BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) = (ccw ^ settings.pwm_spindle.invert.ccw);
 #else
     UNUSED(ccw);
 #endif
@@ -961,12 +1289,12 @@ static void spindleSetSpeed (spindle_ptrs_t *spindle, uint_fast16_t pwm_value)
     if (pwm_value == spindle->context.pwm->off_value) {
         pwmEnabled = false;
         if(spindle->context.pwm->settings->flags.enable_rpm_controlled) {
-            if(spindle->context.pwm->cloned)
+            if(spindle->context.pwm->flags.cloned)
                 spindle_dir(false);
             else
                 spindle_off();
         }
-        if(spindle->context.pwm->always_on) {
+        if(spindle->context.pwm->flags.always_on) {
             if(PWM->PWM_SR & (1 << SPINDLE_PWM_CHANNEL))
                 PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTYUPD = spindle->context.pwm->off_value;
             else {
@@ -979,7 +1307,7 @@ static void spindleSetSpeed (spindle_ptrs_t *spindle, uint_fast16_t pwm_value)
         if(PWM->PWM_SR & (1 << SPINDLE_PWM_CHANNEL))
             PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CDTYUPD = pwm_value;
         else {
-            if(spindle->context.pwm->cloned)
+            if(spindle->context.pwm->flags.cloned)
                 spindle_dir(true);
             else
                 spindle_on();
@@ -992,12 +1320,12 @@ static void spindleSetSpeed (spindle_ptrs_t *spindle, uint_fast16_t pwm_value)
     if (pwm_value == spindle->context.pwm->off_value) {
         pwmEnabled = false;
         if(spindle->context.pwm->settings->flags.enable_rpm_controlled) {
-            if(spindle->context.pwm->cloned)
+            if(spindle->context.pwm->flags.cloned)
                 spindle_dir(false);
             else
                 spindle_off();
         }
-        if(spindle->context.pwm->always_on) {
+        if(spindle->context.pwm->flags.always_on) {
             SPINDLE_PWM_TIMER.TC_RA = spindle->context.pwm->period - spindle->context.pwm->off_value;
             SPINDLE_PWM_TIMER.TC_CMR &= ~TC_CMR_CPCSTOP;
             SPINDLE_PWM_TIMER.TC_CCR = TC_CCR_CLKEN|TC_CCR_SWTRG;
@@ -1006,7 +1334,7 @@ static void spindleSetSpeed (spindle_ptrs_t *spindle, uint_fast16_t pwm_value)
     } else {
         SPINDLE_PWM_TIMER.TC_RA = spindle->context.pwm->period == pwm_value ? 1 : spindle->context.pwm->period - pwm_value;
         if(!pwmEnabled) {
-            if(spindle->context.pwm->cloned)
+            if(spindle->context.pwm->flags.cloned)
                 spindle_dir(true);
             else
                 spindle_on();
@@ -1027,7 +1355,7 @@ static uint_fast16_t spindleGetPWM (spindle_ptrs_t *spindle, float rpm)
 static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
 #ifdef SPINDLE_DIRECTION_PIN
-    if(state.on || spindle->context.pwm->cloned)
+    if(state.on || spindle->context.pwm->flags.cloned)
         spindle_dir(state.ccw);
 #endif
     if(!spindle->context.pwm->settings->flags.enable_rpm_controlled) {
@@ -1037,7 +1365,7 @@ static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t st
             spindle_off();
     }
 
-    spindleSetSpeed(spindle, state.on || (state.ccw && spindle->context.pwm->cloned)
+    spindleSetSpeed(spindle, state.on || (state.ccw && spindle->context.pwm->flags.cloned)
                               ? spindle->context.pwm->compute_value(spindle->context.pwm, rpm, false)
                               : spindle->context.pwm->off_value);
 }
@@ -1047,7 +1375,7 @@ bool spindleConfig (spindle_ptrs_t *spindle)
     if(spindle == NULL)
         return false;
 
-    if(spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.spindle, hal.f_step_timer)) {
+    if(spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, hal.f_step_timer)) {
 #ifdef SPINDLE_PWM_CHANNEL
         PWM->PWM_CH_NUM[SPINDLE_PWM_CHANNEL].PWM_CPRD = spindle_pwm.period;
 #else
@@ -1072,14 +1400,14 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 {
     UNUSED(spindle);
 
-    spindle_state_t state = { settings.spindle.invert.mask };
+    spindle_state_t state = { settings.pwm_spindle.invert.mask };
 
     state.on = BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) != 0;
 #ifdef SPINDLE_DIRECTION_PIN
     state.ccw = BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) != 0;
 #endif
 
-    state.value ^= settings.spindle.invert.mask;
+    state.value ^= settings.pwm_spindle.invert.mask;
 
 #ifdef SPINDLE_PWM_PIN
     if(pwmEnabled)
@@ -1094,14 +1422,16 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 #ifdef DEBUGOUT
 void debug_out (bool on)
 {
-    BITBAND_PERI(COOLANT_MIST_PIN, on);
+#ifdef COOLANT_MIST_PIN
+    BITBAND_PERI(COOLANT_MIST_PORT->PIO_ODSR, COOLANT_MIST_PIN) = on;
+#endif
 }
 #endif
 
 // Start/stop coolant (and mist if enabled)
 static void coolantSetState (coolant_state_t mode)
 {
-    mode.value ^= settings.coolant_invert.mask;
+    mode.value ^= settings.coolant.invert.mask;
 
   #ifdef COOLANT_FLOOD_PIN
     BITBAND_PERI(COOLANT_FLOOD_PORT->PIO_ODSR, COOLANT_FLOOD_PIN) = mode.flood;
@@ -1123,7 +1453,7 @@ static coolant_state_t coolantGetState (void)
     state.mist  = BITBAND_PERI(COOLANT_MIST_PORT->PIO_ODSR, COOLANT_MIST_PIN);
   #endif
 
-    state.value ^= settings.coolant_invert.mask;
+    state.value ^= settings.coolant.invert.mask;
 
     return state;
 }
@@ -1238,18 +1568,23 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
         }
 #endif
 
-        pulse_length = (uint32_t)(42.0f * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY)) - 1;
+        step_pulse.length = (uint32_t)(42.0f * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY)) - 1;
 
         if(hal.driver_cap.step_pulse_delay && settings->steppers.pulse_delay_microseconds > 0.0f) {
             int32_t delay = (uint32_t)(42.0f * (settings->steppers.pulse_delay_microseconds - 0.6f));
-            pulse_delay = delay < 2 ? 2 : delay;
+            step_pulse.delay = delay < 2 ? 2 : delay;
             hal.stepper.pulse_start = stepperPulseStartDelayed;
         } else
             hal.stepper.pulse_start = stepperPulseStart;
 
         IRQRegister(STEP_TIMER_IRQn, STEP_IRQHandler);
-        STEP_TIMER.TC_RC = pulse_length;
+        STEP_TIMER.TC_RC = step_pulse.length;
         STEP_TIMER.TC_IER = TC_IER_CPCS; // Enable step end interrupt
+
+#if STEP_INJECT_ENABLE
+        STEP2_TIMER.TC_RC = step_pulse.length;
+        STEP2_TIMER.TC_IER = TC_IER_CPCS; // Enable step end interrupt
+#endif
 
         /****************************************
          *  Control, limit & probe pins config  *
@@ -1553,6 +1888,21 @@ static bool driver_setup (settings_t *settings)
     NVIC_EnableIRQ(STEP_TIMER_IRQn);    // Enable stepper interrupts
     NVIC_SetPriority(STEP_TIMER_IRQn, 0);
 
+#if STEP_INJECT_ENABLE
+
+    TC1->TC_WPMR = TC_WPMR_WPKEY(0x54494D); //|TC_WPMR_WPEN;
+
+    STEP2_TIMER.TC_CCR = TC_CCR_CLKDIS;
+    STEP2_TIMER.TC_CMR = TC_CMR_WAVE|TC_CMR_WAVSEL_UP|TC_CMR_CPCSTOP;
+    STEP2_TIMER.TC_IER = TC_IER_CPCS;
+    STEP2_TIMER.TC_CCR = TC_CCR_CLKEN;
+
+    IRQRegister(STEP2_TIMER_IRQ, output_pulse_isr);
+    NVIC_EnableIRQ(STEP2_TIMER_IRQ);    // Enable stepper interrupts
+    NVIC_SetPriority(STEP2_TIMER_IRQ, 0);
+
+#endif
+
 #if DRIVER_SPINDLE_PWM_ENABLE
 
  // Spindle init
@@ -1588,7 +1938,7 @@ static bool driver_setup (settings_t *settings)
 
  // Set defaults
 
-    IOInitDone = settings->version.id == 22;
+    IOInitDone = settings->version.id == 23;
 
     hal.settings_changed(settings, (settings_changed_flags_t){0});
 
@@ -1728,7 +2078,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "240928";
+    hal.driver_version = "241208";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -1756,6 +2106,7 @@ bool driver_init (void)
 #endif
 #if STEP_INJECT_ENABLE
     hal.stepper.output_step = stepperOutputStep;
+    hal.stepper.claim_motor = stepperClaimMotor;
 #endif
 
     hal.limits.enable = limitsEnable;
@@ -1993,14 +2344,43 @@ static void STEPDELAY_IRQHandler (void)
 {
     if(STEP_TIMER.TC_SR & STEP_TIMER.TC_IMR) {
 
-        set_step_outputs(next_step_outbits);
+        set_step_outputs(step_pulse.out);
 
         IRQRegister(STEP_TIMER_IRQn, STEP_IRQHandler);
 
-        STEP_TIMER.TC_RC = pulse_length;
+        STEP_TIMER.TC_RC = step_pulse.length;
         STEP_TIMER.TC_CCR = TC_CCR_SWTRG;
     }
 }
+
+#if STEP_INJECT_ENABLE
+
+static void output_pulse_isr (void)
+{
+    if(STEP2_TIMER.TC_SR & STEP2_TIMER.TC_IMR) {
+
+        axes_signals_t axes = { .bits = step_pulse.inject.out.bits };
+
+        step_pulse.inject.out.bits = 0;
+        step_pulse.inject.axes.bits = step_pulse.inject.claimed.bits;
+
+        inject_step((axes_signals_t){0}, axes);
+    }
+}
+
+static void output_pulse_isr_delayed (void)
+{
+    if(STEP2_TIMER.TC_SR & STEP2_TIMER.TC_IMR) {
+
+        inject_step(step_pulse.inject.out, step_pulse.inject.out);
+
+        IRQRegister(STEP2_TIMER_IRQ, output_pulse_isr);
+        STEP2_TIMER.TC_RC = step_pulse.delay;
+        STEP2_TIMER.TC_CCR = TC_CCR_SWTRG;
+    }
+}
+
+#endif // STEP_INJECT_ENABLE
 
 void pin_debounce (void *pin)
 {

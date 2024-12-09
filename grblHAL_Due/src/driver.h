@@ -71,6 +71,10 @@ void IRQUnRegister(int32_t IRQnum);
 #define STEPPER_TIMER_IRQn  TC0_IRQn
 #define STEP_TIMER          (TC0->TC_CHANNEL[1])
 #define STEP_TIMER_IRQn     TC1_IRQn
+#if STEP_INJECT_ENABLE
+#define STEP2_TIMER         (TC1->TC_CHANNEL[0])
+#define STEP2_TIMER_IRQ     TC3_IRQn
+#endif
 
 #ifdef BOARD_TINYG2_DUE
     #include "boards/tinyg2_due_map.h"
