@@ -136,37 +136,49 @@
 #define M4_ENABLE_PIN       9   // Due D30 & Ramps E1-EN                     //Correcting Ramps 1.6
 #endif
 
+#define AUXOUTPUT0_PORT     PIOB
+#define AUXOUTPUT0_PIN      14  // Due D53 & Ramps D53 / AUX-3 Connector U$1 (8/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (6/8)
+#define AUXOUTPUT1_PORT     PIOC
+#define AUXOUTPUT1_PIN      12  // Due D51 & Ramps D51 / MOSI / AUX-3 Connector U$1 (6/10)  //Ramps 1.6 Has different style AUX-3 port but pin is there (4/8)
+#define AUXOUTPUT2_PORT     PIOC
+#define AUXOUTPUT2_PIN      14  // Due D49 & Ramps D49 / AUX-3 Connector U$1 (4/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (2/8)
+#define AUXOUTPUT3_PORT     PIOC // Spindle PWM, Due D5 / TIOA6 / PWM5 & Ramps D5 / SER3              //Correcting Ramps 1.6
+#define AUXOUTPUT3_PIN      25
+#define AUXOUTPUT4_PORT     PIOC // Spindle direction, Due D8 & Ramps D8 / P$2 (Mosfet Outputs)             //Correcting Ramps 1.6
+#define AUXOUTPUT4_PIN      22
+#define AUXOUTPUT5_PORT     PIOC // Spindle enable, Due D4 & Ramps D4 / SER4                              //Correcting Ramps 1.6
+#define AUXOUTPUT5_PIN      26
+#define AUXOUTPUT6_PORT     PIOB // Coolant flood, Due A9 & Ramps THERM0 / Connector JP7 (2/6)              //!!! Ramps 1.6 A9 goes AUX-2 (4/10) !!!
+#define AUXOUTPUT6_PIN      15
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])  // ???
-#define SPINDLE_PWM_CCREG       2                     // ???
-#define SPINDLE_PWM_PORT        PIOC
-#define SPINDLE_PWM_PIN         25  // Due D5 / TIOA6 / PWM5 & Ramps D5 / SER3              //Correcting Ramps 1.6
-#else
-#define AUXOUTPUT3_PORT         PIOC
-#define AUXOUTPUT3_PIN          25
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PORT     AUXOUTPUT5_PORT
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT5_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PORT  PIOC
-#define SPINDLE_DIRECTION_PIN   22  // Due D8 & Ramps D8 / P$2 (Mosfet Outputs)             //Correcting Ramps 1.6
-#else
-#define AUXOUTPUT4_PORT         PIOC
-#define AUXOUTPUT4_PIN          22
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
+#define SPINDLE_PWM_CCREG       2
+#define SPINDLE_PWM_PORT        AUXOUTPUT3_PORT
+#define SPINDLE_PWM_PIN         AUXOUTPUT3_PIN
 #endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PORT     PIOC
-#define SPINDLE_ENABLE_PIN      26 // Due D4 & Ramps D4 / SER4                              //Correcting Ramps 1.6
-#else
-#define AUXOUTPUT5_PORT         PIOC
-#define AUXOUTPUT5_PIN          26
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PORT  AUXOUTPUT4_PORT
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT4_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT      PIOB
-#define COOLANT_FLOOD_PIN       15  // Due A9 & Ramps THERM0 / Connector JP7 (2/6)              //!!! Ramps 1.6 A9 goes AUX-2 (4/10) !!!
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PORT      AUXOUTPUT6_PORT
+#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#if COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE COOLANT_FLOOD
+#endif
+#elif COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE 0
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT              PIOA
@@ -182,13 +194,6 @@
 #define AUXINPUT1_PIN           0   // Due D25 & Ramps D25 / AUX-4 Connector U$9 (15/18)        //Correcting Ramps 1.6
 #define AUXINPUT2_PORT          PIOD
 #define AUXINPUT2_PIN           2   // Due D27 & Ramps D27 / AUX-4 Connector U$9 (14/18)        //Correcting Ramps 1.6
-
-#define AUXOUTPUT0_PORT         PIOB
-#define AUXOUTPUT0_PIN          14  // Due D53 & Ramps D53 / AUX-3 Connector U$1 (8/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (6/8)
-#define AUXOUTPUT1_PORT         PIOC
-#define AUXOUTPUT1_PIN          12  // Due D51 & Ramps D51 / MOSI / AUX-3 Connector U$1 (6/10)  //Ramps 1.6 Has different style AUX-3 port but pin is there (4/8)
-#define AUXOUTPUT2_PORT         PIOC
-#define AUXOUTPUT2_PIN          14  // Due D49 & Ramps D49 / AUX-3 Connector U$1 (4/10)         //Ramps 1.6 Has different style AUX-3 port but pin is there (2/8)
 
 #define AUXINTPUT0_ANALOG_PORT  PIOB
 #define AUXINTPUT0_ANALOG_PIN   19 // Due A10

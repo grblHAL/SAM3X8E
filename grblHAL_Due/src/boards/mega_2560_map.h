@@ -62,38 +62,42 @@
 #define Z_LIMIT_PORT        PIOD
 #define Z_LIMIT_PIN         8   // Due Digital Pin 12
 
+// Define auxiliary output pins
+#define AUXOUTPUT0_PORT     PIOC // Spindle PWM, Due Digital Pin 7 / PWML6 B
+#define AUXOUTPUT0_PIN      23
+#define AUXOUTPUT1_PORT     PIOC // Spindle direction, Due Digital Pin 5
+#define AUXOUTPUT1_PIN      25
+#define AUXOUTPUT2_PORT     PIOC // Spindle enable, Due Digital Pin 6
+#define AUXOUTPUT2_PIN      24
+#define AUXOUTPUT3_PORT     PIOC // Coolant flood, Due Digital Pin 8
+#define AUXOUTPUT3_PIN      22
+#define AUXOUTPUT4_PORT     PIOC // Coolant mist, Due Digital Pin 9
+#define AUXOUTPUT4_PIN      21
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PORT     AUXOUTPUT2_PORT
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT2_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 #define SPINDLE_PWM_CHANNEL     6
-#define SPINDLE_PWM_PORT        PIOC
-#define SPINDLE_PWM_PIN         23 // Due Digital Pin 7 / PWML6 B
-#else
-#define AUXOUTPUT0_PORT         PIOC
-#define AUXOUTPUT0_PIN          23
+#define SPINDLE_PWM_PORT        AUXOUTPUT0_PORT
+#define SPINDLE_PWM_PIN         AUXOUTPUT0_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PORT  PIOC
-#define SPINDLE_DIRECTION_PIN   25  // Due Digital Pin 5
-#else
-#define AUXOUTPUT1_PORT         PIOC
-#define AUXOUTPUT1_PIN          25
-#endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PORT     PIOC
-#define SPINDLE_ENABLE_PIN      24  // Due Digital Pin 6
-#else
-#define AUXOUTPUT2_PORT         PIOC
-#define AUXOUTPUT2_PIN          24
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PORT  AUXOUTPUT1_PORT
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT1_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOC
-#define COOLANT_FLOOD_PIN   22  // Due Digital Pin 8
-#define COOLANT_MIST_PORT   PIOC
-#define COOLANT_MIST_PIN    21  // Due Digital Pin 9
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PORT      AUXOUTPUT3_PORT
+#define COOLANT_FLOOD_PIN       AUXOUTPUT3_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PORT       AUXOUTPUT4_PORT
+#define COOLANT_MIST_PIN        AUXOUTPUT4_PIN
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT          PIOB

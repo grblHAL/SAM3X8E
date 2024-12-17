@@ -56,38 +56,48 @@
 #define Z_LIMIT_PORT            PIOC // 06
 #define Z_LIMIT_PIN             24
 
-// Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
-#define SPINDLE_PWM_PORT        PIOC
-#define SPINDLE_PWM_PIN         25  // TIOA6
-#else
-#define AUXOUTPUT3_PORT         PIOC
+// Define auxiliary output pins
+#define AUXOUTPUT0_PORT         PIOA
+#define AUXOUTPUT0_PIN          14
+#define AUXOUTPUT1_PORT         PIOD
+#define AUXOUTPUT1_PIN          0
+#define AUXOUTPUT2_PORT         PIOD
+#define AUXOUTPUT2_PIN          2
+#define AUXOUTPUT3_PORT         PIOC // Spindle PWM, TIOA6
 #define AUXOUTPUT3_PIN          25
-#endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PORT  PIOD
-#define SPINDLE_DIRECTION_PIN   3
-#else
-#define AUXOUTPUT4_PORT         PIOD
+#define AUXOUTPUT4_PORT         PIOD // Spindle direction
 #define AUXOUTPUT4_PIN          3
-#endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PORT     PIOA
-#define SPINDLE_ENABLE_PIN      15
-#else
-#define AUXOUTPUT5_PORT         PIOA
+#define AUXOUTPUT5_PORT         PIOA // Spindle enable
 #define AUXOUTPUT5_PIN          15
+#define AUXOUTPUT6_PORT         PIOC // Coolant flood
+#define AUXOUTPUT6_PIN          5
+#define AUXOUTPUT7_PORT         PIOC // Coolant mist
+#define AUXOUTPUT7_PIN          3
+
+// Define driver spindle pins
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PORT     AUXOUTPUT5_PORT
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT5_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
+#define SPINDLE_PWM_PORT        AUXOUTPUT3_PORT
+#define SPINDLE_PWM_PIN         AUXOUTPUT3_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PORT  AUXOUTPUT4_PORT
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT4_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT      PIOC
-#define COOLANT_FLOOD_PIN       5
-#define COOLANT_MIST_PORT       PIOC
-#define COOLANT_MIST_PIN        3
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PORT      AUXOUTPUT6_PORT
+#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PORT       AUXOUTPUT7_PORT
+#define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT              PIOC
@@ -130,12 +140,5 @@
 #define SD_CS_PORT              PIOA
 #define SD_CS_PIN               30
 #endif
-
-#define AUXOUTPUT0_PORT         PIOA
-#define AUXOUTPUT0_PIN          14
-#define AUXOUTPUT1_PORT         PIOD
-#define AUXOUTPUT1_PIN          0
-#define AUXOUTPUT2_PORT         PIOD
-#define AUXOUTPUT2_PIN          2
 
 /**/

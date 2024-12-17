@@ -130,36 +130,37 @@
 #define M5_LIMIT_PIN_MAX    12  // Due Digital Pin 51
 #endif
 
-// Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[2])
-#define SPINDLE_PWM_PORT    PIOD
-#define SPINDLE_PWM_PIN     7   // Due Digital Pin 11 / TIOA8
-#else
-#define AUXOUTPUT0_PORT     PIOD
+// Define auxiliary output pins
+#define AUXOUTPUT0_PORT     PIOD // Spindle PWM, Due Digital Pin 11 / TIOA8
 #define AUXOUTPUT0_PIN      7
-#endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PORT PIOD
-#define SPINDLE_ENABLE_PIN  8   // Due Digital Pin 12
-#else
-#define AUXOUTPUT1_PORT     PIOD
+#define AUXOUTPUT1_PORT     PIOD // Spindle enable, Due Digital Pin 12
 #define AUXOUTPUT1_PIN      8
+#define AUXOUTPUT2_PORT     PIOA // Coolant flood, Due Analog port 9
+#define AUXOUTPUT2_PIN      22
+
+// Define driver spindle pins
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PORT     AUXOUTPUT1_PORT
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT1_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[2])
+#define SPINDLE_PWM_PORT        AUXOUTPUT0_PORT
+#define SPINDLE_PWM_PIN         AUXOUTPUT0_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOA
-#define COOLANT_FLOOD_PIN   22
-
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOA
-#define RESET_PIN           16
-#define FEED_HOLD_PORT      PIOA
-#define FEED_HOLD_PIN       24
-#define CYCLE_START_PORT    PIOA
-#define CYCLE_START_PIN     23
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PORT      AUXOUTPUT2_PORT
+#define COOLANT_FLOOD_PIN       AUXOUTPUT2_PIN
+#if COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE COOLANT_FLOOD
+#endif
+#elif COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE 0
+#endif
 
 // Define probe switch input pin.
 // NA

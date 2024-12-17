@@ -103,29 +103,37 @@
 #define M4_ENABLE_PIN       9   // Due Digital Pin 30
 #endif
 
-// Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[0])
-#define SPINDLE_PWM_CCREG   2
-#define SPINDLE_PWM_PORT    PIOC
-#define SPINDLE_PWM_PIN     22  // Due Digital Pin 8 // PWML5 B
-#else
-#define AUXOUTPUT0_PORT     PIOC
-#define AUXOUTPUT0_PIN      15
-#endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PORT PIOC
-#define SPINDLE_ENABLE_PIN  23  // Due Digital Pin 7
-#else
-#define AUXOUTPUT1_PORT     PIOC
+// Define auxiliary output pins
+#define AUXOUTPUT0_PORT     PIOC // Spindle PWM, Due Digital Pin 8 // PWML5 B
+#define AUXOUTPUT0_PIN      22
+#define AUXOUTPUT1_PORT     PIOC // Spindle enable, Due Digital Pin 7
 #define AUXOUTPUT1_PIN      23
+#define AUXOUTPUT2_PORT     PIOD // Coolant flood, Due Analog port 9
+#define AUXOUTPUT2_PIN      18
+
+// Define driver spindle pins
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PORT     AUXOUTPUT1_PORT
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT1_PIN
+#endif
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[0])
+#define SPINDLE_PWM_PORT        AUXOUTPUT0_PORT
+#define SPINDLE_PWM_PIN         AUXOUTPUT0_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PORT  PIOB
-#define COOLANT_FLOOD_PIN   18  // Due Analog port 9
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PORT      AUXOUTPUT2_PORT
+#define COOLANT_FLOOD_PIN       AUXOUTPUT2_PIN
+#if COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE COOLANT_FLOOD
+#endif
+#elif COOLANT_ENABLE & COOLANT_MIST
+#undef COOLANT_ENABLE
+#define COOLANT_ENABLE 0
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
 #define RESET_PORT          PIOA
