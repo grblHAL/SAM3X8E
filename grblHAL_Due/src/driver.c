@@ -443,12 +443,12 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #ifdef B_AXIS
                 case B_AXIS:
                     BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out1.b;
-                    break
+                    break;
 #endif
 #ifdef C_AXIS
                 case C_AXIS:
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out1.c;
-                    break
+                    break;
 #endif
             }
             mask <<= 1;
@@ -544,12 +544,12 @@ inline static void __attribute__((always_inline)) set_step_outputs (axes_signals
 #ifdef B_AXIS
                 case B_AXIS:
                     BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out.b;
-                    break
+                    break;
 #endif
 #ifdef C_AXIS
                 case C_AXIS:
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
-                    break
+                    break;
 #endif
             }
             mask <<= 1;
@@ -870,12 +870,12 @@ static inline __attribute__((always_inline)) void inject_step (axes_signals_t st
 #ifdef B_AXIS
                 case B_AXIS:
                     BITBAND_PERI(B_STEP_PORT->PIO_ODSR, B_STEP_PIN) = step_out.b;
-                    break
+                    break;
 #endif
 #ifdef C_AXIS
                 case C_AXIS:
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
-                    break
+                    break;
 #endif
             }
         }
