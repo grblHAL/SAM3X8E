@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2024 Terje Io
+  Copyright (c) 2019-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -2102,7 +2102,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "241216";
+    hal.driver_version = "250228";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2170,10 +2170,6 @@ bool driver_init (void)
     stream_connect(usb_serialInit());
 #else
     stream_connect(serialInit(BAUD_RATE));
-#endif
-
-#if I2C_ENABLE
-    i2c_init();
 #endif
 
 #if EEPROM_ENABLE

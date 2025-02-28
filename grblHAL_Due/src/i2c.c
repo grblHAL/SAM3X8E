@@ -5,20 +5,20 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2024 Terje Io
+  Copyright (c) 2019-2025 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with Grbl. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "driver.h"
@@ -63,13 +63,11 @@ static i2c_trans_t i2c = {0};
 
 static void I2C_interrupt_handler (void);
 
-void i2c_init (void)
+i2c_cap_t i2c_start (void)
 {
-    static bool init_ok = false;
+    static i2c_cap_t cap = {};
 
-    if(!init_ok) {
-
-        init_ok = true;
+    if(!cap.started) {
 
         pmc_enable_periph_clk(I2C_ID);
         pmc_enable_periph_clk(I2C_PERIPH == TWI0 ? ID_PIOA : ID_PIOB);
@@ -109,10 +107,14 @@ void i2c_init (void)
 
         hal.periph_port.register_pin(&scl);
         hal.periph_port.register_pin(&sda);
+
+        cap.started = cap.tx_non_blocking = On;
     }
+
+    return cap;
 }
 
-bool i2c_probe (uint_fast16_t i2c_address)
+bool i2c_probe (i2c_address_t i2c_address)
 {
     i2c.nak = false;
     i2c_send(i2c_address, NULL, 0, true);
@@ -121,7 +123,7 @@ bool i2c_probe (uint_fast16_t i2c_address)
 }
 
 // get bytes (max 8), waits for result
-uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool i2c_receive (i2c_address_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.data  = buf ? buf : i2c.buffer;
     i2c.count = bytes;
@@ -135,10 +137,10 @@ uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
     if(block)
         while(i2cIsBusy);
 
-    return i2c.buffer;
+    return true;
 }
 
-bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
+bool i2c_send (i2c_address_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.count = bytes ? bytes - 1 : 0;
     i2c.data  = buf ? buf : i2c.buffer;
@@ -154,7 +156,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
     return true;
 }
 
-uint8_t *i2c_readregister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
+static uint8_t *i2c_readregister (i2c_address_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
 {
     while(i2cIsBusy);
 
@@ -178,15 +180,15 @@ uint8_t *i2c_readregister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint1
     return i2c.buffer;
 }
 
-#if EEPROM_ENABLE
-
-nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
+bool i2c_transfer (i2c_transfer_t *transfer, bool read)
 {
     static uint8_t txbuf[66];
 
+    bool ok;
+
     while(i2cIsBusy);
 
-    if(read) {
+    if((ok = read)) {
         if(transfer->word_addr_bytes == 1)
             i2c.regaddr[0] = transfer->word_addr;
         else {
@@ -194,7 +196,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             i2c.regaddr[1] = transfer->word_addr >> 8;
         }
         i2c_readregister(transfer->address, transfer->data, transfer->word_addr_bytes, transfer->count, true);
-    } else {
+    } else if((ok = transfer->count <= 64)) {
         memcpy(&txbuf[transfer->word_addr_bytes], transfer->data, transfer->count);
         if(transfer->word_addr_bytes == 1)
             txbuf[0] = transfer->word_addr;
@@ -202,24 +204,19 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             txbuf[0] = transfer->word_addr >> 8;
             txbuf[1] = transfer->word_addr & 0xFF;
         }
-        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
-#if !EEPROM_IS_FRAM
-        hal.delay_ms(5, NULL);
-#endif
+        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, !transfer->no_block);
     }
 
-    return NVS_TransferResult_OK;
+    return ok;
 }
 
-#endif
-
-void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
+bool i2c_get_keycode (i2c_address_t i2cAddr, keycode_callback_ptr callback)
 {
     while(i2cIsBusy);
 
     i2c.keycode_callback = callback;
 
-    i2c_receive(i2cAddr, NULL, 1, false);
+    return i2c_receive(i2cAddr, NULL, 1, false);
 }
 
 #if TRINAMIC_ENABLE == 2130 && TRINAMIC_I2C
@@ -276,7 +273,7 @@ static TMC2130_status_t I2C_TMC_WriteRegister (TMC2130_t *driver, TMC2130_datagr
 
 void I2C_DriverInit (TMC_io_driver_t *driver)
 {
-    i2c_init();
+    i2c_start();
     driver->WriteRegister = I2C_TMC_WriteRegister;
     driver->ReadRegister = I2C_TMC_ReadRegister;
 }

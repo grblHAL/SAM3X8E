@@ -33,3 +33,4 @@ board = due
 build_flags = ${env.build_flags}
 %build_flags%
 lib_deps = ${env.lib_deps}
+%lib_deps%
