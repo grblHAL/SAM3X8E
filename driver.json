@@ -40,6 +40,7 @@
       "MAP": "grblHAL_Due/src/boards/cmcgrath_rev3_map.h",
       "caps": {
         "axes": 3,
+        "probe": 0,
         "digital_out": 3,
         "serial_ports": 1
       }
@@ -51,6 +52,7 @@
       "MAP": "grblHAL_Due/src/boards/tinyg2_due_map.h",
       "caps": {
         "axes": 6,
+        "probe": 0,
         "serial_ports": 1,
         "safety_door": 0,
         "spindle_dir": 0
@@ -106,6 +108,7 @@
       "MAP": "grblHAL_Due/src/boards/radds_1.6_map.h",
       "caps": {
         "axes": 5,
+        "probe": 0,
         "safety_door": 0,
         "spindle_dir": 0,
         "serial_ports": 1
