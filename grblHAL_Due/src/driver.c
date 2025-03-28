@@ -66,8 +66,9 @@ static pin_debounce_t debounce;
 static delay_t delay_ms = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static input_signal_t *a_signals[10] = {0}, *b_signals[10] = {0}, *c_signals[10] = {0}, *d_signals[10] = {0};
 static struct {
-    uint16_t length;
-    uint16_t delay;
+    uint32_t length;
+    uint32_t delay;
+    uint32_t t_min_period; // timer ticks
     axes_signals_t out;
 #if STEP_INJECT_ENABLE
     struct {
@@ -76,7 +77,7 @@ static struct {
         volatile axes_signals_t out;
     } inject;
 #endif
-} step_pulse = {0};
+} step_pulse = {};
 #ifdef PROBE_PIN
 static probe_state_t probe = {
     .connected = On
@@ -758,9 +759,9 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
     STEPPER_TIMER.TC_CCR = TC_CCR_CLKDIS;
 // Limit min steps/s to about 2 (hal.f_step_timer @ 20MHz)
 #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
-    STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 18) ? cycles_per_tick : (1UL << 18) - 1UL;
+    STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 18) ? max(cycles_per_tick, step_pulse.t_min_period) : (1UL << 18) - 1UL;
 #else
-    STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 23) ? cycles_per_tick : (1UL << 23) - 1UL;
+    STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 23) ? max(cycles_per_tick, step_pulse.t_min_period) : (1UL << 23) - 1UL;
 #endif
     STEPPER_TIMER.TC_CCR = TC_CCR_CLKEN|TC_CCR_SWTRG;
 }
@@ -786,11 +787,13 @@ static void stepperGoIdle (bool clear_signals)
 // Sets stepper direction and pulse pins and starts a step pulse.
 static void stepperPulseStart (stepper_t *stepper)
 {
-    if(stepper->dir_change)
-        set_dir_outputs(stepper->dir_outbits);
+    if(stepper->dir_changed.bits) {
+        stepper->dir_changed.bits = 0;
+        set_dir_outputs(stepper->dir_out);
+    }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
         STEP_TIMER.TC_CCR = TC_CCR_SWTRG;
     }
 }
@@ -799,13 +802,14 @@ static void stepperPulseStart (stepper_t *stepper)
 // Note: delay is only added when there is a direction change and a pulse to be output.
 static void stepperPulseStartDelayed (stepper_t *stepper)
 {
-    if(stepper->dir_change) {
+    if(stepper->dir_changed.bits) {
 
-        set_dir_outputs(stepper->dir_outbits);
+        stepper->dir_changed.bits = 0;
+        set_dir_outputs(stepper->dir_out);
 
-        if(stepper->step_outbits.value) {
+        if(stepper->step_out.bits) {
 
-            step_pulse.out = stepper->step_outbits; // Store out_bits
+            step_pulse.out = stepper->step_out; // Store out_bits
 
             IRQRegister(STEP_TIMER_IRQn, STEPDELAY_IRQHandler);
 
@@ -816,8 +820,8 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
         return;
     }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
         STEP_TIMER.TC_CCR = TC_CCR_SWTRG;
     }
 }
@@ -1590,10 +1594,12 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
         }
 #endif
 
-        step_pulse.length = (uint32_t)(42.0f * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY)) - 1;
+        float ts = hal.f_step_timer / 1000000.0f;
+        step_pulse.t_min_period = (uint32_t)((hal.step_us_min + STEP_PULSE_TOFF_MIN) * ts);
+        step_pulse.length = (uint32_t)(ts * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY)) - 1;
 
         if(hal.driver_cap.step_pulse_delay && settings->steppers.pulse_delay_microseconds > 0.0f) {
-            int32_t delay = (uint32_t)(42.0f * (settings->steppers.pulse_delay_microseconds - 0.6f));
+            int32_t delay = (uint32_t)(ts * (settings->steppers.pulse_delay_microseconds - 0.6f));
             step_pulse.delay = delay < 2 ? 2 : delay;
             hal.stepper.pulse_start = stepperPulseStartDelayed;
         } else
@@ -2102,7 +2108,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "250228";
+    hal.driver_version = "250327";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
