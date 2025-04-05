@@ -58,6 +58,7 @@
                                     // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
 
 //#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
+//#define LASER_OVD_ENABLE        1 // Enable M-code for overdrive PWM output during spindle off in RPM controlled mode.
 //#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
 //#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
@@ -84,7 +85,7 @@
 //#define LIMITS_OVERRIDE_ENABLE  1
 
 #ifndef USB_SERIAL_CDC
-#define SERIAL_DEVICE       -1 // Select serial device for output if not using native USB, default is -1, max value is 2
+#define SERIAL_DEVICE        -1 // Select serial device for output if not using native USB, default is -1, max value is 2
 #endif
 
 // If the selected board map supports more than three motors ganging and/or auto-squaring
