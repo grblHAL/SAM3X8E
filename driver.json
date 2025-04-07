@@ -27,6 +27,7 @@
       { "id": "macros" },
       { "id": "laser_cluster" },
       { "id": "laser_coolant" },
+      { "id": "laser_overdrive" },
       { "id": "plasma" },
       { "id": "openpnp" },
       { "id": "bluetooth" }
