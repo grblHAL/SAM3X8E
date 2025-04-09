@@ -2140,7 +2140,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "250403";
+    hal.driver_version = "250408";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2351,11 +2351,11 @@ bool driver_init (void)
 
 #if AUX_ANALOG
 
-  #ifndef MCP3221_ENABLE
     if(aux_analog_in.n_pins || aux_analog_out.n_pins)
-  #endif
         ioports_init_analog(&aux_analog_in, &aux_analog_out);
 #endif
+
+    io_expanders_init();
 
 #if AUX_CONTROLS_ENABLED
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
@@ -2366,11 +2366,6 @@ bool driver_init (void)
 #endif
 
     serialRegisterStreams();
-
-#if MCP3221_ENABLE_NEW
-    extern void mcp3221_init (void);
-    mcp3221_init();
-#endif
 
 #include "grbl/plugins_init.h"
 

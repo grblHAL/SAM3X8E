@@ -35,11 +35,6 @@
 #include "my_machine.h"
 #endif
 
-#if defined(MCP3221_ENABLE)
-#define I2C_ENABLE 1
-#define MCP3221_ENABLE_NEW MCP3221_ENABLE
-#endif
-
 #include "grbl/driver_opts.h"
 
 /******************************************************************************

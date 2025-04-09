@@ -62,13 +62,17 @@
 //#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
 //#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
 //#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
-//#define MCP3221_ENABLE       0x4D // Enable MCP3221 I2C ADC input with address 0x4D (0b01001101).
 //#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
 //#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
 //#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxiliary outputs.
 //#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
 //#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
 //#define HOMING_PULLOFF_ENABLE   1 // Enable per axis homing pulloff distance settings.
+
+// IO expanders:
+//
+//#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
+//#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
