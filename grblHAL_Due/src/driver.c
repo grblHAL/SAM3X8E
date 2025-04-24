@@ -36,6 +36,7 @@
 #include "grbl/protocol.h"
 #include "grbl/state_machine.h"
 #include "grbl/pin_bits_masks.h"
+#include "grbl/task.h"
 
 #if USB_SERIAL_CDC
 #include "usb_serial.h"
@@ -1200,7 +1201,7 @@ static void aux_irq_handler (uint8_t port, bool state)
 #endif
 #ifdef MPG_MODE_PIN
             case Input_MPGSelect:
-                protocol_enqueue_foreground_task(mpg_select, NULL);
+                task_add_immediate(mpg_select, NULL);
                 break;
 #endif
             default:
@@ -2374,7 +2375,7 @@ bool driver_init (void)
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
     if(hal.driver_cap.mpg_mode)
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
+        task_run_on_startup(mpg_enable, NULL);
 #elif MPG_ENABLE == 2
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
@@ -2509,7 +2510,7 @@ inline static void PIO_IRQHandler (input_signal_t **signals, uint32_t isr)
   #ifdef MPG_MODE_PIN
                 case PinGroup_MPG:
                     PIO_EnableInterrupt(inputpin[i], IRQ_Mode_None);
-                    protocol_enqueue_foreground_task(mpg_select, NULL);
+                    task_add_immediate(mpg_select, NULL);
                     break;
   #endif
 #endif
