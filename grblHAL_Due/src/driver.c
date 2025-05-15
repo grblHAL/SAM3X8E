@@ -1277,13 +1277,17 @@ bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 
 inline static void spindle_off (spindle_ptrs_t *spindle)
 {
+#ifdef SPINDLE_PWM_PIN
     spindle->context.pwm->flags.enable_out = false;
-#ifdef SPINDLE_DIRECTION_PIN
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned) {
         BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) = settings.pwm_spindle.invert.ccw;
     } else {
         BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = settings.pwm_spindle.invert.on;
     }
+  #else
+    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = settings.pwm_spindle.invert.on;
+  #endif
 #else
     BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = settings.pwm_spindle.invert.on;
 #endif
@@ -1291,13 +1295,17 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
+#ifdef SPINDLE_PWM_PIN
     spindle->context.pwm->flags.enable_out = true;
-#ifdef SPINDLE_DIRECTION_PIN
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned) {
         BITBAND_PERI(SPINDLE_DIRECTION_PORT->PIO_ODSR, SPINDLE_DIRECTION_PIN) = !settings.pwm_spindle.invert.ccw;
     } else {
         BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = !settings.pwm_spindle.invert.on;
     }
+  #else
+    BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = !settings.pwm_spindle.invert.on;
+  #endif
 #else
     BITBAND_PERI(SPINDLE_ENABLE_PORT->PIO_ODSR, SPINDLE_ENABLE_PIN) = !settings.pwm_spindle.invert.on;
 #endif
@@ -2142,7 +2150,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "250408";
+    hal.driver_version = "250514";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
