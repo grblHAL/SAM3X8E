@@ -135,12 +135,25 @@
 #define COOLANT_ENABLE 0
 #endif
 
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOA
-#define RESET_PIN           16   // DUE Analog Pin 0
-#define FEED_HOLD_PORT      PIOA
-#define FEED_HOLD_PIN       24   // DUE Analog Pin 1
-#define CYCLE_START_PORT    PIOA
-#define CYCLE_START_PIN     23   // DUE Analog Pin 2
+#define AUXINPUT0_PORT          PIOA // Reset/EStop
+#define AUXINPUT0_PIN           16
+#define AUXINPUT1_PORT          PIOA // Feed hold
+#define AUXINPUT1_PIN           24
+#define AUXINPUT2_PORT          PIOA // Cycle start
+#define AUXINPUT2_PIN           23
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PORT              AUXINPUT0_PORT
+#define RESET_PIN               AUXINPUT0_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PORT          AUXINPUT1_PORT
+#define FEED_HOLD_PIN           AUXINPUT1_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PORT        AUXINPUT2_PORT
+#define CYCLE_START_PIN         AUXINPUT2_PIN
+#endif
 
 /**/

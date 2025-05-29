@@ -59,7 +59,6 @@
 #define Z_LIMIT_PORT        PIOA
 #define Z_LIMIT_PIN         11  // Due Digital Pin 18
 
-
 // Define homing/hard limit switch max input pins.
 #if X_AUTO_SQUARE
 #define M3_LIMIT_PORT       PIOD
@@ -140,19 +139,19 @@
 
 // Define driver spindle pins
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
-#define SPINDLE_ENABLE_PORT     AUXOUTPUT1_PORT
-#define SPINDLE_ENABLE_PIN      AUXOUTPUT1_PIN
+#define SPINDLE_ENABLE_PORT AUXOUTPUT1_PORT
+#define SPINDLE_ENABLE_PIN  AUXOUTPUT1_PIN
 #endif
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
-#define SPINDLE_PWM_TIMER       (TC2->TC_CHANNEL[2])
-#define SPINDLE_PWM_PORT        AUXOUTPUT0_PORT
-#define SPINDLE_PWM_PIN         AUXOUTPUT0_PIN
+#define SPINDLE_PWM_TIMER   (TC2->TC_CHANNEL[2])
+#define SPINDLE_PWM_PORT    AUXOUTPUT0_PORT
+#define SPINDLE_PWM_PIN     AUXOUTPUT0_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
 #if COOLANT_ENABLE & COOLANT_FLOOD
-#define COOLANT_FLOOD_PORT      AUXOUTPUT2_PORT
-#define COOLANT_FLOOD_PIN       AUXOUTPUT2_PIN
+#define COOLANT_FLOOD_PORT  AUXOUTPUT2_PORT
+#define COOLANT_FLOOD_PIN   AUXOUTPUT2_PIN
 #if COOLANT_ENABLE & COOLANT_MIST
 #undef COOLANT_ENABLE
 #define COOLANT_ENABLE COOLANT_FLOOD
@@ -161,6 +160,10 @@
 #undef COOLANT_ENABLE
 #define COOLANT_ENABLE 0
 #endif
+
+// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
+#undef CONTROL_ENABLE
+#define CONTROL_ENABLE  0
 
 // Define probe switch input pin.
 // NA

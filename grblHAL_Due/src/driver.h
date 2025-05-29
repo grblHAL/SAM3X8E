@@ -72,6 +72,10 @@ void IRQUnRegister(int32_t IRQnum);
 #define STEP2_TIMER_IRQ     TC3_IRQn
 #endif
 
+#ifndef CONTROL_ENABLE
+#define CONTROL_ENABLE (CONTROL_HALT|CONTROL_FEED_HOLD|CONTROL_CYCLE_START)
+#endif
+
 #ifdef BOARD_TINYG2_DUE
     #include "boards/tinyg2_due_map.h"
 #elif defined(BOARD_RAMPS_16)
@@ -108,16 +112,14 @@ void IRQUnRegister(int32_t IRQnum);
 
 // End configuration
 
+#include "grbl/driver_opts2.h"
+
 #if !defined(SERIAL2_DEVICE) && (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
 #define SERIAL2_DEVICE 1 // Select serial device for ModBus communication, default is 1, allowed values are 0, 1 and 2
 #endif
 
 #if BLUETOOTH_ENABLE == 2
 #define SERIAL2_DEVICE 1
-#endif
-
-#if TRINAMIC_ENABLE == 2130
-#include "tmc2130/trinamic.h"
 #endif
 
 // Define I2C port/pins
@@ -145,18 +147,6 @@ void IRQUnRegister(int32_t IRQnum);
 #endif
 
 #define I2C_CLOCK 100000
-
-// Simple sanity check...
-
-#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PORT)
-#error Keypad plugin not supported!
-#elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PORT)
-#error I2C strobe not supported!
-#endif
-
-#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
-#error "MPG_MODE_PIN must be defined!"
-#endif
 
 #if defined(AUXOUTPUT0_PWM_PORT) || defined(AUXOUTPUT1_PWM_PORT) ||\
      defined(AUXOUTPUT0_ANALOG_PORT) || defined(AUXOUTPUT1_ANALOG_PORT) ||\

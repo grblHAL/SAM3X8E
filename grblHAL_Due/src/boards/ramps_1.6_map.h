@@ -152,33 +152,38 @@
 #define COOLANT_ENABLE 0
 #endif
 
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT          PIOA
-#define RESET_PIN           22  // DUE Analog Pin 3
-#define FEED_HOLD_PORT      PIOA
-#define FEED_HOLD_PIN       4   // DUE Analog Pin 4
-#define CYCLE_START_PORT    PIOA
-#define CYCLE_START_PIN     6   // DUE Analog Pin 5
-
 #define AUXINPUT0_PORT      PIOA
 #define AUXINPUT0_PIN       14
 #define AUXINPUT1_PORT      PIOD
 #define AUXINPUT1_PIN       0
 #define AUXINPUT2_PORT      PIOD
 #define AUXINPUT2_PIN       2
-#define AUXINPUT3_PORT      PIOB  // Due Digital Pin 21
+#define AUXINPUT3_PORT      PIOB // D21 Probe
 #define AUXINPUT3_PIN       13
+#define AUXINPUT4_PORT      PIOA // A3 Reset/EStop
+#define AUXINPUT4_PIN       22
+#define AUXINPUT5_PORT      PIOA // A4 Feed hold
+#define AUXINPUT5_PIN       4
+#define AUXINPUT6_PORT      PIOA // A5 Cycle start
+#define AUXINPUT6_PIN       6
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PORT          AUXINPUT4_PORT
+#define RESET_PIN           AUXINPUT4_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PORT      AUXINPUT5_PORT
+#define FEED_HOLD_PIN       AUXINPUT5_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PORT    AUXINPUT6_PORT
+#define CYCLE_START_PIN     AUXINPUT6_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PORT          AUXINPUT3_PORT
 #define PROBE_PIN           AUXINPUT3_PIN
 #endif
-
-#define AUXOUTPUT0_PORT     PIOB
-#define AUXOUTPUT0_PIN      14
-#define AUXOUTPUT1_PORT     PIOC
-#define AUXOUTPUT1_PIN      12
-#define AUXOUTPUT2_PORT     PIOC
-#define AUXOUTPUT2_PIN      14
 
 /**/

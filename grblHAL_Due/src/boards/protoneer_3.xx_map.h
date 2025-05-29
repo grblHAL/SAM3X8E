@@ -90,16 +90,28 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT4_PIN
 #endif
 
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT              PIOA
-#define RESET_PIN               16
-#define FEED_HOLD_PORT          PIOA
-#define FEED_HOLD_PIN           24
-#define CYCLE_START_PORT        PIOA
-#define CYCLE_START_PIN         23
-
 #define AUXINPUT0_PORT          PIOA
 #define AUXINPUT0_PIN           4
+#define AUXINPUT1_PORT          PIOA // Reset/EStop
+#define AUXINPUT1_PIN           16
+#define AUXINPUT2_PORT          PIOA // Feed hold
+#define AUXINPUT2_PIN           24
+#define AUXINPUT3_PORT          PIOA // Cycle start
+#define AUXINPUT3_PIN           23
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PORT              AUXINPUT1_PORT
+#define RESET_PIN               AUXINPUT1_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PORT          AUXINPUT2_PORT
+#define FEED_HOLD_PIN           AUXINPUT2_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PORT        AUXINPUT3_PORT
+#define CYCLE_START_PIN         AUXINPUT3_PIN
+#endif
 
 // Define probe switch input pin.
 #if PROBE_ENABLE

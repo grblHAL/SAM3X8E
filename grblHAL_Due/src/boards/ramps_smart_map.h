@@ -180,20 +180,32 @@
 #define COOLANT_ENABLE 0
 #endif
 
-// Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-#define RESET_PORT              PIOA
-#define RESET_PIN               22  // DUE A3 & Ramps A3 / AUX-2 Connector U$10 (3/10)          //!!! Ramps 1.6 D2 goes AUX-1 A-OUT 3 which Ramps Smart doesnt have !!!
-#define FEED_HOLD_PORT          PIOA
-#define FEED_HOLD_PIN           4   // DUE A5 & Ramps A5 / AUX-2 Connector U$10 (5/10)          //!!! Ramps 1.6 A5 goes AUX-2 (3/10) !!!
-#define CYCLE_START_PORT        PIOA
-#define CYCLE_START_PIN         6   // DUE A4 & Ramps A4 / AUX-2 Connector U$10 (4/10)          //!!! Ramps 1.6 D1 goes AUX-1 A-OUT 4 which Ramps Smart doesnt have !!!
+#define AUXINPUT0_PORT          PIOA // Due D23 & Ramps D23 / AUX-4 Connector U$9 (16/18)        //Correcting Ramps 1.6
+#define AUXINPUT0_PIN           14
+#define AUXINPUT1_PORT          PIOD // Due D25 & Ramps D25 / AUX-4 Connector U$9 (15/18)        //Correcting Ramps 1.6
+#define AUXINPUT1_PIN           0
+#define AUXINPUT2_PORT          PIOD // Due D27 & Ramps D27 / AUX-4 Connector U$9 (14/18)        //Correcting Ramps 1.6
+#define AUXINPUT2_PIN           2
+#define AUXINPUT3_PORT          PIOA // DUE A3 & Ramps A3 / AUX-2 Connector U$10 (3/10)          //!!! Ramps 1.6 D2 goes AUX-1 A-OUT 3 which Ramps Smart doesnt have !!!
+#define AUXINPUT3_PIN           22
+#define AUXINPUT4_PORT          PIOA // DUE A5 & Ramps A5 / AUX-2 Connector U$10 (5/10)          //!!! Ramps 1.6 A5 goes AUX-2 (3/10) !!!
+#define AUXINPUT4_PIN           4
+#define AUXINPUT5_PORT          PIOA // DUE A4 & Ramps A4 / AUX-2 Connector U$10 (4/10)          //!!! Ramps 1.6 D1 goes AUX-1 A-OUT 4 which Ramps Smart doesnt have !!!
+#define AUXINPUT5_PIN           6
 
-#define AUXINPUT0_PORT          PIOA
-#define AUXINPUT0_PIN           14  // Due D23 & Ramps D23 / AUX-4 Connector U$9 (16/18)        //Correcting Ramps 1.6
-#define AUXINPUT1_PORT          PIOD
-#define AUXINPUT1_PIN           0   // Due D25 & Ramps D25 / AUX-4 Connector U$9 (15/18)        //Correcting Ramps 1.6
-#define AUXINPUT2_PORT          PIOD
-#define AUXINPUT2_PIN           2   // Due D27 & Ramps D27 / AUX-4 Connector U$9 (14/18)        //Correcting Ramps 1.6
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PORT              AUXINPUT3_PORT
+#define RESET_PIN               AUXINPUT3_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PORT          AUXINPUT4_PORT
+#define FEED_HOLD_PIN           AUXINPUT4_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PORT        AUXINPUT5_PORT
+#define CYCLE_START_PIN         AUXINPUT5_PIN
+#endif
 
 #define AUXINTPUT0_ANALOG_PORT  PIOB
 #define AUXINTPUT0_ANALOG_PIN   19 // Due A10
