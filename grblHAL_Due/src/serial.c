@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2019-2024 Terje Io
+  Copyright (c) 2019-2025 Terje Io
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -24,11 +24,83 @@
 #include "serial.h"
 #include "grbl/protocol.h"
 
+#if SERIAL_PORT < 0
+#define SERIAL0_PERIPH UART
+#define SERIAL0_PORT PIOA
+#define SERIAL0_PORT_ID ID_PIOA
+#define SERIAL0_ID ID_UART
+#define SERIAL0_IRQ UART_IRQn
+#define SERIAL0_RX_PIN 8
+#define SERIAL0_TX_PIN 9
+#elif SERIAL_PORT == 0
+#define SERIAL0_PERIPH USART0
+#define SERIAL0_PORT PIOA
+#define SERIAL0_PORT_ID ID_PIOA
+#define SERIAL0_ID ID_USART0
+#define SERIAL0_IRQ USART0_IRQn
+#define SERIAL0_RX_PIN 10
+#define SERIAL0_TX_PIN 11
+#elif SERIAL_PORT == 1
+#define SERIAL0_PERIPH USART1
+#define SERIAL0_PORT PIOA
+#define SERIAL0_PORT_ID ID_PIOA
+#define SERIAL0_ID ID_USART1
+#define SERIAL0_IRQ USART1_IRQn
+#define SERIAL0_RX_PIN 12
+#define SERIAL0_TX_PIN 13
+#elif SERIAL_PORT == 2
+#define SERIAL0_PERIPH USART2
+#define SERIAL0_PORT PIOB
+#define SERIAL0_PORT_ID ID_PIOB
+#define SERIAL0_ID ID_USART2
+#define SERIAL0_IRQ USART2_IRQn
+#define SERIAL0_RX_PIN 21
+#define SERIAL0_TX_PIN 20
+#else
+#error Illegal SERIAL_PORT selected
+#endif
+
+#ifdef SERIAL1_PORT
+
+static const io_stream_t *serial2Init(uint32_t baud_rate);
+
+#if SERIAL1_PORT == 0
+#define SERIAL2_PERIPH USART0
+#define SERIAL2_PORT PIOA
+#define SERIAL2_PORT_ID ID_PIOA
+#define SERIAL2_ID ID_USART0
+#define SERIAL2_IRQ USART0_IRQn
+#define SERIAL2_RX_PIN 10
+#define SERIAL2_TX_PIN 11
+#elif SERIAL1_PORT == 1
+#define SERIAL2_PERIPH USART1
+#define SERIAL2_PORT PIOA
+#define SERIAL2_PORT_ID ID_PIOA
+#define SERIAL2_ID ID_USART1
+#define SERIAL2_IRQ USART1_IRQn
+#define SERIAL2_RX_PIN 12
+#define SERIAL2_TX_PIN 13
+#elif SERIAL1_PORT == 2
+#define SERIAL2_PERIPH USART2
+#define SERIAL2_PORT PIOB
+#define SERIAL2_PORT_ID ID_PIOB
+#define SERIAL2_ID ID_USART2
+#define SERIAL2_IRQ USART2_IRQn
+#define SERIAL2_RX_PIN 21
+#define SERIAL2_TX_PIN 20
+#else
+#error Illegal SERIAL1_PORT selected
+#endif
+
+#endif // SERIAL1_PORT
+
 static stream_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf = {0};
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
-static void SERIAL_IRQHandler (void);
+static const io_stream_t *serialInit(uint32_t baud_rate);
+
+static void SERIAL0_IRQHandler (void);
 
 static io_stream_properties_t serial[] = {
     {
@@ -40,7 +112,7 @@ static io_stream_properties_t serial[] = {
       .flags.modbus_ready = On,
       .claim = serialInit
     },
-#ifdef SERIAL2_DEVICE
+#ifdef SERIAL1_PORT
     {
       .type = StreamType_Serial,
       .instance = 1,
@@ -70,10 +142,10 @@ static uint16_t serialTxCount (void)
 {
     uint16_t tail = txbuf.tail;
 
-#if SERIAL_DEVICE == -1
-    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY) ? 0 : 1);
+#if SERIAL_PORT == -1
+    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL0_PERIPH->UART_SR & UART_SR_TXEMPTY) ? 0 : 1);
 #else
-    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1);
+    return BUFCOUNT(txbuf.head, tail, TX_BUFFER_SIZE) + ((SERIAL0_PERIPH->US_CSR & US_CSR_TXEMPTY) ? 0 : 1);
 #endif
 }
 
@@ -122,12 +194,12 @@ static inline bool serialPutCNonBlocking (const char c)
 {
     bool ok = false;
 
-#if SERIAL_DEVICE < 0
-    if((ok = (SERIAL_PERIPH->UART_IMR & US_IMR_TXRDY) == 0 && (SERIAL_PERIPH->UART_SR & UART_SR_TXEMPTY)))
-        SERIAL_PERIPH->UART_THR = c;
+#if SERIAL_PORT < 0
+    if((ok = (SERIAL0_PERIPH->UART_IMR & US_IMR_TXRDY) == 0 && (SERIAL0_PERIPH->UART_SR & UART_SR_TXEMPTY)))
+        SERIAL0_PERIPH->UART_THR = c;
 #else
-    if((ok = (SERIAL_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && (SERIAL_PERIPH->US_CSR & US_CSR_TXEMPTY)))
-        SERIAL_PERIPH->US_THR = c;
+    if((ok = (SERIAL0_PERIPH->US_IMR & US_IMR_TXRDY) == 0 && (SERIAL0_PERIPH->US_CSR & US_CSR_TXEMPTY)))
+        SERIAL0_PERIPH->US_THR = c;
 #endif
     return ok;
 }
@@ -149,10 +221,10 @@ static bool serialPutC (const char c)
 
         txbuf.data[txbuf.head] = c;                             // Add data to buffer
         txbuf.head = next_head;                                 // and update head pointer
-#if SERIAL_DEVICE < 0
-        SERIAL_PERIPH->UART_IER = UART_IER_TXRDY;               // Enable TX interrupts
+#if SERIAL_PORT < 0
+        SERIAL0_PERIPH->UART_IER = UART_IER_TXRDY;               // Enable TX interrupts
 #else
-        SERIAL_PERIPH->US_IER = US_IER_TXRDY;                   // Enable TX interrupts
+        SERIAL0_PERIPH->US_IER = US_IER_TXRDY;                   // Enable TX interrupts
 #endif
     }
 
@@ -204,24 +276,24 @@ static bool serialSuspendInput (bool suspend)
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
-#if SERIAL_DEVICE < 0
-    SERIAL_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
-    SERIAL_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
+#if SERIAL_PORT < 0
+    SERIAL0_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+    SERIAL0_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
 
-    SERIAL_PERIPH->UART_MR = UART_MR_PAR_NO;
-    SERIAL_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
-    SERIAL_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
+    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
+    SERIAL0_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL0_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
 
-    SERIAL_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
+    SERIAL0_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
 #else
-    SERIAL_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
-    SERIAL_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
+    SERIAL0_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    SERIAL0_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
 
-    SERIAL_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
-    SERIAL_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
-    SERIAL_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+    SERIAL0_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+    SERIAL0_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
+    SERIAL0_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
 
-    SERIAL_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
+    SERIAL0_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
 #endif
 
     return true;
@@ -229,16 +301,16 @@ static bool serialSetBaudRate (uint32_t baud_rate)
 
 static bool serialDisable (bool disable)
 {
-#if SERIAL_DEVICE < 0
+#if SERIAL_PORT < 0
     if(disable)
-        SERIAL_PERIPH->UART_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+        SERIAL0_PERIPH->UART_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
     else
-        SERIAL_PERIPH->UART_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+        SERIAL0_PERIPH->UART_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
 #else
     if(disable)
-        SERIAL_PERIPH->US_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
+        SERIAL0_PERIPH->US_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
     else
-        SERIAL_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
+        SERIAL0_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
 #endif
 
     return true;
@@ -259,7 +331,7 @@ static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command
     return prev;
 }
 
-const io_stream_t *serialInit (uint32_t baud_rate)
+static const io_stream_t *serialInit (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
@@ -285,28 +357,28 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 
     serial[0].flags.claimed = On;
 
-    pmc_enable_periph_clk(SERIAL_ID);
-    pmc_enable_periph_clk(SERIAL_PORT_ID);
+    pmc_enable_periph_clk(SERIAL0_ID);
+    pmc_enable_periph_clk(SERIAL0_PORT_ID);
 
-#if SERIAL_DEVICE >= 0
-    SERIAL_PORT->PIO_WPMR = 0x50494F;
-    SERIAL_PORT->PIO_PDR  = (1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
-    SERIAL_PORT->PIO_OER  = (1<<SERIAL_TX_PIN);
-    SERIAL_PORT->PIO_ABSR &= ~(1<<SERIAL_RX_PIN)|(1<<SERIAL_TX_PIN);
+#if SERIAL_PORT >= 0
+    SERIAL0_PORT->PIO_WPMR = 0x50494F;
+    SERIAL0_PORT->PIO_PDR  = (1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
+    SERIAL0_PORT->PIO_OER  = (1<<SERIAL0_TX_PIN);
+    SERIAL0_PORT->PIO_ABSR &= ~(1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
 #endif
 
     serialSetBaudRate(baud_rate);
 
-    IRQRegister(SERIAL_IRQ, SERIAL_IRQHandler);
+    IRQRegister(SERIAL0_IRQ, SERIAL0_IRQHandler);
 
-    NVIC_EnableIRQ(SERIAL_IRQ);
-    NVIC_SetPriority(SERIAL_IRQ, 1);
+    NVIC_EnableIRQ(SERIAL0_IRQ);
+    NVIC_SetPriority(SERIAL0_IRQ, 1);
 
     static const periph_pin_t tx = {
         .function = Output_TX,
         .group = PinGroup_UART,
-        .port = SERIAL_PORT,
-        .pin = SERIAL_TX_PIN,
+        .port = SERIAL0_PORT,
+        .pin = SERIAL0_TX_PIN,
         .mode = { .mask = PINMODE_OUTPUT },
         .description = "Primary UART"
     };
@@ -314,8 +386,8 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     static const periph_pin_t rx = {
         .function = Input_RX,
         .group = PinGroup_UART,
-        .port = SERIAL_PORT,
-        .pin = SERIAL_RX_PIN,
+        .port = SERIAL0_PORT,
+        .pin = SERIAL0_RX_PIN,
         .mode = { .mask = PINMODE_NONE },
         .description = "Primary UART"
     };
@@ -326,22 +398,14 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 }
 
 //
-static void SERIAL_IRQHandler (void)
+static void SERIAL0_IRQHandler (void)
 {
-//uint8_t ifg = SERIAL_PERIPH->USART.INTFLAG.reg;
-/*
-    if(SERIAL_PERIPH->USART.STATUS.bit.FERR) {
-        data = SERIAL_PERIPH->USART.DATA.bit.DATA;
-        SERIAL_PERIPH->USART.STATUS.bit.FERR = 1;
-        SERIAL_PERIPH->USART.INTFLAG.reg = ifg;
-    }
-*/
-#if SERIAL_DEVICE < 0
-    if(SERIAL_PERIPH->UART_SR & UART_SR_RXRDY) {
-        char data = (char)SERIAL_PERIPH->UART_RHR;
+#if SERIAL_PORT < 0
+    if(SERIAL0_PERIPH->UART_SR & UART_SR_RXRDY) {
+        char data = (char)SERIAL0_PERIPH->UART_RHR;
 #else
-    if(SERIAL_PERIPH->US_CSR & US_CSR_RXRDY) {
-        char data = (char)SERIAL_PERIPH->US_RHR;
+    if(SERIAL0_PERIPH->US_CSR & US_CSR_RXRDY) {
+        char data = (char)SERIAL0_PERIPH->US_RHR;
 #endif
         if(!enqueue_realtime_command(data)) {
             uint_fast16_t next_head = BUFNEXT(rxbuf.head, rxbuf);   // Get and increment buffer pointer
@@ -353,30 +417,30 @@ static void SERIAL_IRQHandler (void)
             }
         }           
     }
-#if SERIAL_DEVICE < 0
-    if(SERIAL_PERIPH->UART_SR & UART_SR_TXRDY) {
+#if SERIAL_PORT < 0
+    if(SERIAL0_PERIPH->UART_SR & UART_SR_TXRDY) {
 #else
-    if(SERIAL_PERIPH->US_CSR & US_CSR_TXRDY) {
+    if(SERIAL0_PERIPH->US_CSR & US_CSR_TXRDY) {
 #endif
         uint_fast16_t tail = txbuf.tail;                            // Get buffer pointer
         if(tail != txbuf.head) {
-#if SERIAL_DEVICE < 0
-            SERIAL_PERIPH->UART_THR = (uint32_t)txbuf.data[tail];   // Send a byte from the buffer
+#if SERIAL_PORT < 0
+            SERIAL0_PERIPH->UART_THR = (uint32_t)txbuf.data[tail];   // Send a byte from the buffer
 #else
-            SERIAL_PERIPH->US_THR = (uint32_t)txbuf.data[tail];     // Send a byte from the buffer
+            SERIAL0_PERIPH->US_THR = (uint32_t)txbuf.data[tail];     // Send a byte from the buffer
 #endif
             txbuf.tail = tail = BUFNEXT(tail, txbuf);               // and increment pointer
         }
         if (tail == txbuf.head)                                     // Turn off TX interrupt
-#if SERIAL_DEVICE < 0
-            SERIAL_PERIPH->UART_IDR = UART_IER_TXRDY;               // when buffer empty
+#if SERIAL_PORT < 0
+            SERIAL0_PERIPH->UART_IDR = UART_IER_TXRDY;               // when buffer empty
 #else
-            SERIAL_PERIPH->US_IDR = US_IER_TXRDY;                   // when buffer empty
+            SERIAL0_PERIPH->US_IDR = US_IER_TXRDY;                   // when buffer empty
 #endif
     }
 }
 
-#ifdef SERIAL2_DEVICE
+#ifdef SERIAL1_PORT
 
 static stream_tx_buffer_t tx2buf = {0};
 static stream_rx_buffer_t rx2buf = {0};
@@ -518,7 +582,7 @@ static int16_t serial2GetC (void)
 
 static bool serial2SetBaudRate (uint32_t baud_rate)
 {
-#if SERIAL2_DEVICE < 0
+#if SERIAL1_PORT < 0
     SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
     SERIAL2_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
 
@@ -543,7 +607,7 @@ static bool serial2SetBaudRate (uint32_t baud_rate)
 
 static bool serial2Disable (bool disable)
 {
-#if SERIAL2_DEVICE < 0
+#if SERIAL1_PORT < 0
     if(disable)
         SERIAL2_PERIPH->UART_IER &= ~(US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME);
     else
@@ -572,7 +636,7 @@ static enqueue_realtime_command_ptr serial2SetRtHandler (enqueue_realtime_comman
     return prev;
 }
 
-const io_stream_t *serial2Init (uint32_t baud_rate)
+static const io_stream_t *serial2Init (uint32_t baud_rate)
 {
     static const io_stream_t stream = {
         .type = StreamType_Serial,
@@ -642,15 +706,6 @@ const io_stream_t *serial2Init (uint32_t baud_rate)
 //
 static void SERIAL2_IRQHandler (void)
 {
-//uint8_t ifg = SERIAL_PERIPH->USART.INTFLAG.reg;
-/*
-    if(SERIAL_PERIPH->USART.STATUS.bit.FERR) {
-        data = SERIAL_PERIPH->USART.DATA.bit.DATA;
-        SERIAL_PERIPH->USART.STATUS.bit.FERR = 1;
-        SERIAL_PERIPH->USART.INTFLAG.reg = ifg;
-    }
-*/
-
     if(SERIAL2_PERIPH->US_CSR & US_CSR_RXRDY) {
         char data = (char)SERIAL2_PERIPH->US_RHR;
         if(!enqueue_realtime_command2(data)) {
@@ -675,4 +730,4 @@ static void SERIAL2_IRQHandler (void)
     }
 }
 
-#endif // SERIAL2_DEVICE
+#endif // SERIAL1_PORT

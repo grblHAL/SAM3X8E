@@ -37,6 +37,10 @@
 
 #include "grbl/driver_opts.h"
 
+#if MODBUS_ENABLE && !defined(SERIAL1_PORT)
+#define SERIAL1_PORT 1
+#endif
+
 /******************************************************************************
 * Definitions for bit band access and dynamic IRQ registration                *
 ******************************************************************************/
@@ -112,15 +116,19 @@ void IRQUnRegister(int32_t IRQnum);
 
 // End configuration
 
-#include "grbl/driver_opts2.h"
+#ifndef SERIAL_PORT
+#define SERIAL_PORT -1
+#endif
 
-#if !defined(SERIAL2_DEVICE) && (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
-#define SERIAL2_DEVICE 1 // Select serial device for ModBus communication, default is 1, allowed values are 0, 1 and 2
+#if !defined(SERIAL1_PORT) && (MODBUS_ENABLE & MODBUS_RTU_ENABLED)
+#define SERIAL1_PORT 1 // Select serial device for ModBus communication, default is 1, allowed values are 0, 1 and 2
 #endif
 
 #if BLUETOOTH_ENABLE == 2
-#define SERIAL2_DEVICE 1
+#define SERIAL1_PORT 1
 #endif
+
+#include "grbl/driver_opts2.h"
 
 // Define I2C port/pins
 

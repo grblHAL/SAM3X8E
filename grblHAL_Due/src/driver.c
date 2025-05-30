@@ -2220,10 +2220,13 @@ bool driver_init (void)
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
+    serialRegisterStreams();
+
 #if USB_SERIAL_CDC
     stream_connect(usb_serialInit());
 #else
-    stream_connect(serialInit(BAUD_RATE));
+    if(!stream_connect_instance(SERIAL_STREAM, BAUD_RATE))
+        while(true); // Cannot boot if no communication channel is available!
 #endif
 
 #if EEPROM_ENABLE
@@ -2236,8 +2239,6 @@ bool driver_init (void)
     } else
         hal.nvs.type = NVS_None;
 #endif
-
-    serialRegisterStreams();
 
 #if DRIVER_SPINDLE_ENABLE
 
@@ -2372,8 +2373,6 @@ bool driver_init (void)
     io_expanders_init();
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
-
-    serialRegisterStreams();
 
 #include "grbl/plugins_init.h"
 
