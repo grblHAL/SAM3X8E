@@ -277,23 +277,34 @@ static bool serialSuspendInput (bool suspend)
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
 #if SERIAL_PORT < 0
-    SERIAL0_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+    SERIAL0_PERIPH->UART_PTCR = UART_PTCR_RXTDIS|UART_PTCR_TXTDIS;
     SERIAL0_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
-
-    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
     SERIAL0_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
     SERIAL0_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
-
     SERIAL0_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
 #else
-    SERIAL0_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    SERIAL0_PERIPH->US_PTCR = US_PTCR_RXTDIS|US_PTCR_TXTDIS;
     SERIAL0_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
-
-    SERIAL0_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
     SERIAL0_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
     SERIAL0_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
-
     SERIAL0_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
+#endif
+
+    return true;
+}
+
+static bool serialSetFormat (serial_format_t format)
+{
+#if SERIAL_PORT < 0
+    SERIAL0_PERIPH->UART_MR &= ~UART_MR_PAR_Msk;
+    SERIAL0_PERIPH->UART_MR |= (format.parity == Serial_ParityNone
+                                 ? UART_MR_PAR_NO
+                                 : (format.parity == Serial_ParityEven ? UART_MR_PAR_EVEN : UART_MR_PAR_ODD));
+#else
+    SERIAL0_PERIPH->US_MR &= ~US_MR_PAR_Msk;
+    SERIAL0_PERIPH->US_MR |= (format.parity == Serial_ParityNone
+                               ? US_MR_PAR_NO
+                               : (format.parity == Serial_ParityEven ? US_MR_PAR_EVEN : US_MR_PAR_ODD));
 #endif
 
     return true;
@@ -349,6 +360,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         .disable_rx = serialDisable,
         .suspend_read = serialSuspendInput,
         .set_baud_rate = serialSetBaudRate,
+        .set_format = serialSetFormat,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
 
@@ -360,11 +372,14 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
     pmc_enable_periph_clk(SERIAL0_ID);
     pmc_enable_periph_clk(SERIAL0_PORT_ID);
 
-#if SERIAL_PORT >= 0
+#if SERIAL_PORT < 0
+    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
+#else
     SERIAL0_PORT->PIO_WPMR = 0x50494F;
     SERIAL0_PORT->PIO_PDR  = (1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
     SERIAL0_PORT->PIO_OER  = (1<<SERIAL0_TX_PIN);
     SERIAL0_PORT->PIO_ABSR &= ~(1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
+    SERIAL0_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
 #endif
 
     serialSetBaudRate(baud_rate);
@@ -583,23 +598,34 @@ static int16_t serial2GetC (void)
 static bool serial2SetBaudRate (uint32_t baud_rate)
 {
 #if SERIAL1_PORT < 0
-    SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+    SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS|UART_PTCR_TXTDIS;
     SERIAL2_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
-
-    SERIAL2_PERIPH->UART_MR = UART_MR_PAR_NO;
     SERIAL2_PERIPH->UART_BRGR = (SystemCoreClock / baud_rate) >> 4;
     SERIAL2_PERIPH->UART_IER = UART_IER_RXRDY|UART_IER_OVRE|UART_IER_FRAME;
-
     SERIAL2_PERIPH->UART_CR = UART_CR_RXEN|UART_CR_TXEN;
 #else
-    SERIAL2_PERIPH->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    SERIAL2_PERIPH->US_PTCR = US_PTCR_RXTDIS|US_PTCR_TXTDIS;
     SERIAL2_PERIPH->US_CR = US_CR_RSTRX|US_CR_RSTTX|US_CR_RXDIS|US_CR_TXDIS;
-
-    SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
     SERIAL2_PERIPH->US_BRGR = (SystemCoreClock / baud_rate) >> 4;
     SERIAL2_PERIPH->US_IER = US_IER_RXRDY|US_IER_OVRE|US_IER_FRAME;
-
     SERIAL2_PERIPH->US_CR = US_CR_RXEN|US_CR_TXEN;
+#endif
+
+    return true;
+}
+
+static bool serial2SetFormat (serial_format_t format)
+{
+#if SERIAL1_PORT < 0
+    SERIAL2_PERIPH->UART_MR &= ~UART_MR_PAR_Msk;
+    SERIAL2_PERIPH->UART_MR |= (format.parity == Serial_ParityNone
+                                 ? UART_MR_PAR_NO
+                                 : (format.parity == Serial_ParityEven ? UART_MR_PAR_EVEN : UART_MR_PAR_ODD));
+#else
+    SERIAL2_PERIPH->US_MR &= ~US_MR_PAR_Msk;
+    SERIAL2_PERIPH->US_MR |= (format.parity == Serial_ParityNone
+                               ? US_MR_PAR_NO
+                               : (format.parity == Serial_ParityEven ? US_MR_PAR_EVEN : US_MR_PAR_ODD));
 #endif
 
     return true;
@@ -656,6 +682,7 @@ static const io_stream_t *serial2Init (uint32_t baud_rate)
         .disable_rx = serial2Disable,
     //    .suspend_read = serial2SuspendInput,
         .set_baud_rate = serial2SetBaudRate,
+        .set_format = serial2SetFormat,
         .set_enqueue_rt_handler = serial2SetRtHandler
     };
 
@@ -667,10 +694,15 @@ static const io_stream_t *serial2Init (uint32_t baud_rate)
     pmc_enable_periph_clk(SERIAL2_ID);
     pmc_enable_periph_clk(SERIAL2_PORT_ID);
 
+#if SERIAL1_PORT < 0
+    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
+#else
     SERIAL2_PORT->PIO_WPMR = 0x50494F;
     SERIAL2_PORT->PIO_PDR  = (1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN);
     SERIAL2_PORT->PIO_OER  = (1<<SERIAL2_TX_PIN);
     SERIAL2_PORT->PIO_ABSR &= ~((1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN));
+    SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+#endif
 
     serial2SetBaudRate(baud_rate);
 
