@@ -713,7 +713,7 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 {
     STEPPER_TIMER.TC_CCR = TC_CCR_CLKDIS;
 // Limit min steps/s to about 2 (hal.f_step_timer @ 20MHz)
-#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+#if ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 18) ? max(cycles_per_tick, step_pulse.t_min_period) : (1UL << 18) - 1UL;
 #else
     STEPPER_TIMER.TC_RC = cycles_per_tick < (1UL << 23) ? max(cycles_per_tick, step_pulse.t_min_period) : (1UL << 23) - 1UL;
