@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2018-2021 Terje Io
+  Copyright (c) 2018-2025 Terje Io
 
 
   Grbl is free software: you can redistribute it and/or modify
@@ -88,16 +88,6 @@ static void usb_serialRxCancel (void)
 }
 
 //
-// Writes a character to the serial output stream
-//
-static bool usb_serialPutC (const char c)
-{
-    SerialUSB.write(c);
-
-    return true;
-}
-
-//
 // Writes current buffer to the USB output stream, swaps buffers
 //
 static inline bool _usb_write (void)
@@ -112,7 +102,7 @@ static inline bool _usb_write (void)
 
             length = txfree < txbuf.length ? txfree : txbuf.length;
 
-            SerialUSB.write((uint8_t *)txbuf.s, length); // doc is wrong - does not return bytes sent!
+            SerialUSB.write(txbuf.s, length); // doc is wrong - does not return bytes sent!
 //                    SerialUSB.flush();
 
             txbuf.length -= length;
@@ -134,7 +124,7 @@ static inline bool _usb_write (void)
 //
 // Writes a number of characters from string to the USB output stream, blocks if buffer full
 //
-static void usb_serialWrite (const char *s, uint16_t length)
+static void usb_serialWrite (const uint8_t *s, uint16_t length)
 {
     if(length == 0)
         return;
@@ -184,23 +174,39 @@ static void usb_serialWriteS (const char *s)
                 return;
         }
     } else
-        usb_serialWrite(s, (uint16_t)length);
+        usb_serialWrite((uint8_t *)s, (uint16_t)length);
+}
+
+//
+// Writes a character to the serial output stream
+//
+static bool usb_serialPutC (const uint8_t c)
+{
+    static uint8_t s[2] = "";
+
+    if(txbuf.length) {
+        *s = c;
+        usb_serialWriteS((char *)s);
+    } else
+        SerialUSB.write(c);
+
+    return true;
 }
 
 //
 // serialGetC - returns -1 if no data available
 //
-static int16_t usb_serialGetC (void)
+static int32_t usb_serialGetC (void)
 {
-    uint_fast16_t tail = rxbuf.tail;    // Get buffer pointer
+    uint_fast16_t tail = rxbuf.tail;            // Get buffer pointer
 
     if(tail == rxbuf.head)
         return -1; // no data available
 
-    char data = rxbuf.data[tail];       // Get next character
-    rxbuf.tail = BUFNEXT(tail, rxbuf);  // and update pointer
+    int32_t data = (int32_t)rxbuf.data[tail];   // Get next character
+    rxbuf.tail = BUFNEXT(tail, rxbuf);          // and update pointer
 
-    return (int16_t)data;
+    return data;
 }
 
 static bool usb_serialSuspendInput (bool suspend)
@@ -208,7 +214,7 @@ static bool usb_serialSuspendInput (bool suspend)
     return stream_rx_suspend(&rxbuf, suspend);
 }
 
-static bool usb_serialEnqueueRtCommand (char c)
+static bool usb_serialEnqueueRtCommand (uint8_t c)
 {
     return enqueue_realtime_command(c);
 }

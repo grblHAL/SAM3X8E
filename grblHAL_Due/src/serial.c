@@ -101,6 +101,31 @@ static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_
 static const io_stream_t *serialInit(uint32_t baud_rate);
 
 static void SERIAL0_IRQHandler (void);
+static bool uart_release (uint8_t instance);
+static const io_stream_status_t *get_uart_status (uint8_t instance);
+
+static io_stream_status_t stream_status[] = {
+#if SERIAL_PORT
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    },
+#endif
+#if SERIAL1_PORT
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    },
+#endif
+};
 
 static io_stream_properties_t serial[] = {
     {
@@ -110,7 +135,9 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
-      .claim = serialInit
+      .claim = serialInit,
+      .release = uart_release,
+      .get_status = get_uart_status
     },
 #ifdef SERIAL1_PORT
     {
@@ -120,10 +147,30 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
-      .claim = serial2Init
+      .claim = serial2Init,
+      .release = uart_release,
+      .get_status = get_uart_status
     }
 #endif
 };
+
+static const io_stream_status_t *get_uart_status (uint8_t instance)
+{
+    stream_status[instance].flags = serial[instance].flags;
+
+    return &stream_status[instance];
+}
+
+static bool uart_release (uint8_t instance)
+{
+    bool ok;
+
+    if((ok = serial[instance].flags.claimed))
+        serial[instance].flags.claimed = Off;
+
+    return ok;
+}
+
 
 void serialRegisterStreams (void)
 {
@@ -131,6 +178,50 @@ void serialRegisterStreams (void)
         .n_streams = sizeof(serial) / sizeof(io_stream_properties_t),
         .streams = serial,
     };
+
+    static const periph_pin_t tx = {
+        .function = Output_TX,
+        .group = PinGroup_UART,
+        .port = SERIAL0_PORT,
+        .pin = SERIAL0_TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "Primary UART"
+    };
+
+    static const periph_pin_t rx = {
+        .function = Input_RX,
+        .group = PinGroup_UART,
+        .port = SERIAL0_PORT,
+        .pin = SERIAL0_RX_PIN,
+        .mode = { .mask = PINMODE_NONE }
+    };
+
+    hal.periph_port.register_pin(&rx);
+    hal.periph_port.register_pin(&tx);
+
+#ifdef SERIAL1_PORT
+
+    static const periph_pin_t tx1 = {
+        .function = Output_TX,
+        .group = PinGroup_UART2,
+        .port = SERIAL2_PORT,
+        .pin = SERIAL2_TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "Secondary UART"
+    };
+
+    static const periph_pin_t rx1 = {
+        .function = Input_RX,
+        .group = PinGroup_UART2,
+        .port = SERIAL2_PORT,
+        .pin = SERIAL2_RX_PIN,
+        .mode = { .mask = PINMODE_NONE }
+    };
+
+    hal.periph_port.register_pin(&rx1);
+    hal.periph_port.register_pin(&tx1);
+
+#endif
 
     stream_register_streams(&streams);
 }
@@ -190,7 +281,7 @@ static void serialRxCancel (void)
 //
 // Attempt to send a character bypassing buffering
 //
-static inline bool serialPutCNonBlocking (const char c)
+static inline bool serialPutCNonBlocking (const uint8_t c)
 {
     bool ok = false;
 
@@ -207,7 +298,7 @@ static inline bool serialPutCNonBlocking (const char c)
 //
 // Writes a character to the serial output stream
 //
-static bool serialPutC (const char c)
+static bool serialPutC (const uint8_t c)
 {
     if(txbuf.head != txbuf.tail || !serialPutCNonBlocking(c)) { // Try to send character without buffering...
 
@@ -236,7 +327,7 @@ static bool serialPutC (const char c)
 //
 static void serialWriteS (const char *s)
 {
-    char c, *ptr = (char *)s;
+    uint8_t c, *ptr = (uint8_t *)s;
 
     while((c = *ptr++) != '\0')
         serialPutC(c);
@@ -245,9 +336,9 @@ static void serialWriteS (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-static void serialWrite (const char *s, uint16_t length)
+static void serialWrite (const uint8_t *s, uint16_t length)
 {
-    char *ptr = (char *)s;
+    uint8_t *ptr = (uint8_t *)s;
 
     while(length--)
         serialPutC(*ptr++);
@@ -256,17 +347,17 @@ static void serialWrite (const char *s, uint16_t length)
 //
 // serialGetC - returns -1 if no data available
 //
-static int16_t serialGetC (void)
+static int32_t serialGetC (void)
 {
-    uint_fast16_t tail = rxbuf.tail;    // Get buffer pointer
+    uint_fast16_t tail = rxbuf.tail;            // Get buffer pointer
 
     if(tail == rxbuf.head)
         return -1; // no data available
 
-    char data = rxbuf.data[tail];       // Get next character
-    rxbuf.tail = BUFNEXT(tail, rxbuf);  // and update pointer
+    int32_t data = (int32_t)rxbuf.data[tail];   // Get next character
+    rxbuf.tail = BUFNEXT(tail, rxbuf);          // and update pointer
 
-    return (int16_t)data;
+    return data;
 }
 
 static bool serialSuspendInput (bool suspend)
@@ -276,6 +367,8 @@ static bool serialSuspendInput (bool suspend)
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
+    stream_status[1].baud_rate = baud_rate;
+
 #if SERIAL_PORT < 0
     SERIAL0_PERIPH->UART_PTCR = UART_PTCR_RXTDIS|UART_PTCR_TXTDIS;
     SERIAL0_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
@@ -295,6 +388,8 @@ static bool serialSetBaudRate (uint32_t baud_rate)
 
 static bool serialSetFormat (serial_format_t format)
 {
+    stream_status[0].format = format;
+
 #if SERIAL_PORT < 0
     SERIAL0_PERIPH->UART_MR &= ~UART_MR_PAR_Msk;
     SERIAL0_PERIPH->UART_MR |= (format.parity == Serial_ParityNone
@@ -327,7 +422,7 @@ static bool serialDisable (bool disable)
     return true;
 }
 
-static bool serialEnqueueRtCommand (char c)
+static bool serialEnqueueRtCommand (uint8_t c)
 {
     return enqueue_realtime_command(c);
 }
@@ -369,46 +464,31 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 
     serial[0].flags.claimed = On;
 
-    pmc_enable_periph_clk(SERIAL0_ID);
-    pmc_enable_periph_clk(SERIAL0_PORT_ID);
+    if(!serial[0].flags.init_ok) {
+
+        pmc_enable_periph_clk(SERIAL0_ID);
+        pmc_enable_periph_clk(SERIAL0_PORT_ID);
 
 #if SERIAL_PORT < 0
-    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
+        SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
 #else
-    SERIAL0_PORT->PIO_WPMR = 0x50494F;
-    SERIAL0_PORT->PIO_PDR  = (1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
-    SERIAL0_PORT->PIO_OER  = (1<<SERIAL0_TX_PIN);
-    SERIAL0_PORT->PIO_ABSR &= ~(1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
-    SERIAL0_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+        SERIAL0_PORT->PIO_WPMR = 0x50494F;
+        SERIAL0_PORT->PIO_PDR  = (1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
+        SERIAL0_PORT->PIO_OER  = (1<<SERIAL0_TX_PIN);
+        SERIAL0_PORT->PIO_ABSR &= ~(1<<SERIAL0_RX_PIN)|(1<<SERIAL0_TX_PIN);
+        SERIAL0_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
 #endif
 
-    serialSetBaudRate(baud_rate);
+        IRQRegister(SERIAL0_IRQ, SERIAL0_IRQHandler);
 
-    IRQRegister(SERIAL0_IRQ, SERIAL0_IRQHandler);
+        NVIC_EnableIRQ(SERIAL0_IRQ);
+        NVIC_SetPriority(SERIAL0_IRQ, 1);
 
-    NVIC_EnableIRQ(SERIAL0_IRQ);
-    NVIC_SetPriority(SERIAL0_IRQ, 1);
+        serial[0].flags.init_ok = On;
+    }
 
-    static const periph_pin_t tx = {
-        .function = Output_TX,
-        .group = PinGroup_UART,
-        .port = SERIAL0_PORT,
-        .pin = SERIAL0_TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "Primary UART"
-    };
+    stream_set_defaults(&stream, baud_rate);
 
-    static const periph_pin_t rx = {
-        .function = Input_RX,
-        .group = PinGroup_UART,
-        .port = SERIAL0_PORT,
-        .pin = SERIAL0_RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "Primary UART"
-    };
-
-    hal.periph_port.register_pin(&rx);
-    hal.periph_port.register_pin(&tx);
     return &stream;
 }
 
@@ -523,7 +603,7 @@ static void serial2TxFlush (void)
 //
 // Attempt to send a character bypassing buffering
 //
-static inline bool serial2PutCNonBlocking (const char c)
+static inline bool serial2PutCNonBlocking (const uint8_t c)
 {
     bool ok = false;
 
@@ -536,7 +616,7 @@ static inline bool serial2PutCNonBlocking (const char c)
 //
 // Writes a character to the serial output stream
 //
-static bool serial2PutC (const char c)
+static bool serial2PutC (const uint8_t c)
 {
     if(tx2buf.head != tx2buf.tail || !serial2PutCNonBlocking(c)) {  // Try to send character without buffering...
 
@@ -562,7 +642,7 @@ static bool serial2PutC (const char c)
 //
 static void serial2WriteS (const char *s)
 {
-    char c, *ptr = (char *)s;
+    uint8_t c, *ptr = (uint8_t *)s;
 
     while((c = *ptr++) != '\0')
         serial2PutC(c);
@@ -571,9 +651,9 @@ static void serial2WriteS (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-static void serial2Write (const char *s, uint16_t length)
+static void serial2Write (const uint8_t *s, uint16_t length)
 {
-    char *ptr = (char *)s;
+    uint8_t *ptr = (uint8_t *)s;
 
     while(length--)
         serial2PutC(*ptr++);
@@ -582,21 +662,23 @@ static void serial2Write (const char *s, uint16_t length)
 //
 // serialGetC - returns -1 if no data available
 //
-static int16_t serial2GetC (void)
+static int32_t serial2GetC (void)
 {
     uint_fast16_t tail = rx2buf.tail;       // Get buffer pointer
 
     if(tail == rx2buf.head)
         return -1; // no data available
 
-    char data = rx2buf.data[tail];          // Get next character
+    int32_t data = (int32_t)rx2buf.data[tail];          // Get next character
     rx2buf.tail = BUFNEXT(tail, rx2buf);    // and update pointer
 
-    return (int16_t)data;
+    return data;
 }
 
 static bool serial2SetBaudRate (uint32_t baud_rate)
 {
+    stream_status[1].baud_rate = baud_rate;
+
 #if SERIAL1_PORT < 0
     SERIAL2_PERIPH->UART_PTCR = UART_PTCR_RXTDIS|UART_PTCR_TXTDIS;
     SERIAL2_PERIPH->UART_CR = UART_CR_RSTRX|UART_CR_RSTTX|UART_CR_RXDIS|UART_CR_TXDIS;
@@ -616,6 +698,8 @@ static bool serial2SetBaudRate (uint32_t baud_rate)
 
 static bool serial2SetFormat (serial_format_t format)
 {
+    stream_status[1].format = format;
+
 #if SERIAL1_PORT < 0
     SERIAL2_PERIPH->UART_MR &= ~UART_MR_PAR_Msk;
     SERIAL2_PERIPH->UART_MR |= (format.parity == Serial_ParityNone
@@ -691,46 +775,30 @@ static const io_stream_t *serial2Init (uint32_t baud_rate)
 
     serial[1].flags.claimed = On;
 
-    pmc_enable_periph_clk(SERIAL2_ID);
-    pmc_enable_periph_clk(SERIAL2_PORT_ID);
+    if(!serial[1].flags.init_ok) {
+
+        pmc_enable_periph_clk(SERIAL2_ID);
+        pmc_enable_periph_clk(SERIAL2_PORT_ID);
 
 #if SERIAL1_PORT < 0
-    SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
+        SERIAL0_PERIPH->UART_MR = UART_MR_PAR_NO;
 #else
-    SERIAL2_PORT->PIO_WPMR = 0x50494F;
-    SERIAL2_PORT->PIO_PDR  = (1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN);
-    SERIAL2_PORT->PIO_OER  = (1<<SERIAL2_TX_PIN);
-    SERIAL2_PORT->PIO_ABSR &= ~((1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN));
-    SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
+        SERIAL2_PORT->PIO_WPMR = 0x50494F;
+        SERIAL2_PORT->PIO_PDR  = (1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN);
+        SERIAL2_PORT->PIO_OER  = (1<<SERIAL2_TX_PIN);
+        SERIAL2_PORT->PIO_ABSR &= ~((1<<SERIAL2_RX_PIN)|(1<<SERIAL2_TX_PIN));
+        SERIAL2_PERIPH->US_MR = US_MR_CHRL_8_BIT|US_MR_PAR_NO; // |US_MR_NBSTOP_2
 #endif
 
-    serial2SetBaudRate(baud_rate);
+        IRQRegister(SERIAL2_IRQ, SERIAL2_IRQHandler);
 
-    IRQRegister(SERIAL2_IRQ, SERIAL2_IRQHandler);
+        NVIC_EnableIRQ(SERIAL2_IRQ);
+        NVIC_SetPriority(SERIAL2_IRQ, 1);
 
-    NVIC_EnableIRQ(SERIAL2_IRQ);
-    NVIC_SetPriority(SERIAL2_IRQ, 1);
+        serial[1].flags.init_ok = On;
+    }
 
-    static const periph_pin_t tx = {
-        .function = Output_TX,
-        .group = PinGroup_UART2,
-        .port = SERIAL2_PORT,
-        .pin = SERIAL2_TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "Secondary UART"
-    };
-
-    static const periph_pin_t rx = {
-        .function = Input_RX,
-        .group = PinGroup_UART2,
-        .port = SERIAL2_PORT,
-        .pin = SERIAL2_RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "Secondary UART"
-    };
-
-    hal.periph_port.register_pin(&rx);
-    hal.periph_port.register_pin(&tx);
+    stream_set_defaults(&stream, baud_rate);
 
     return &stream;
 }
