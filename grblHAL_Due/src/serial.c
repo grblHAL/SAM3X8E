@@ -367,7 +367,7 @@ static bool serialSuspendInput (bool suspend)
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
-    stream_status[1].baud_rate = baud_rate;
+    stream_status[0].baud_rate = baud_rate;
 
 #if SERIAL_PORT < 0
     SERIAL0_PERIPH->UART_PTCR = UART_PTCR_RXTDIS|UART_PTCR_TXTDIS;
