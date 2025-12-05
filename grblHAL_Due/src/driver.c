@@ -1179,7 +1179,7 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
     return aux_ctrl->port != IOPORT_UNASSIGNED;
 }
 
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#if DRIVER_SPINDLE_ENABLE
 
 // Static spindle (off, on cw & on ccw)
 
