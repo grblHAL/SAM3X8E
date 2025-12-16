@@ -12,6 +12,8 @@ Pin mappings for a selection of shields/boards can be found [here](https://githu
 
 This driver compiles and uploads from the Arduino IDE and is partially dependent on the Arduino framework.
 
+Note: There is a hardcoded 10ms delay in the Arduino SAM core's CDC transmit codepath that causes very poor performance when using the native USB interface, see grblHAL forum discussion [here](https://github.com/grblHAL/core/discussions/855#discussioncomment-15141314).  Commenting out the delay in your Arduino SAM core as shown in this [issue](https://github.com/arduino/ArduinoCore-sam/issues/106) / [pr](https://github.com/arduino/ArduinoCore-sam/pull/107) fixes the issue.
+
 ---
 
 CNC breakout boards:
