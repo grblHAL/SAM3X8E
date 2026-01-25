@@ -89,47 +89,65 @@ static periph_signal_t *periph_pins = NULL;
 
 static input_signal_t inputpin[] = {
     { .id = Input_LimitX,       .port = X_LIMIT_PORT,      .pin = X_LIMIT_PIN,       .group = PinGroup_Limit },
-  #ifdef X2_LIMIT_PIN
+#ifdef X2_LIMIT_PIN
     { .id = Input_LimitX_2,     .port = X2_LIMIT_PORT,     .pin = X2_LIMIT_PIN,      .group = PinGroup_Limit },
-  #endif
-  #ifdef X_LIMIT_PIN_MAX
+#endif
+#ifdef X_LIMIT_PIN_MAX
     { .id = Input_LimitX_Max,   .port = X_LIMIT_PORT_MAX,  .pin = X_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
+#endif
     { .id = Input_LimitY,       .port = Y_LIMIT_PORT,      .pin = Y_LIMIT_PIN,       .group = PinGroup_Limit },
-  #ifdef Y2_LIMIT_PIN
+#ifdef Y2_LIMIT_PIN
    { .id = Input_LimitY_2,      .port = Y2_LIMIT_PORT,     .pin = Y2_LIMIT_PIN,      .group = PinGroup_Limit },
-  #endif
-  #ifdef Y_LIMIT_PIN_MAX
+#endif
+#ifdef Y_LIMIT_PIN_MAX
     { .id = Input_LimitY_Max,   .port = Y_LIMIT_PORT_MAX,  .pin = Y_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
+#endif
     { .id = Input_LimitZ,       .port = Z_LIMIT_PORT,      .pin = Z_LIMIT_PIN,       .group = PinGroup_Limit },
-  #ifdef Z2_LIMIT_PIN
+#ifdef Z2_LIMIT_PIN
     { .id = Input_LimitZ_2,     .port = Z2_LIMIT_PORT,     .pin = Z2_LIMIT_PIN,      .group = PinGroup_Limit },
-  #endif
-  #ifdef Z_LIMIT_PIN_MAX
+#endif
+#ifdef Z_LIMIT_PIN_MAX
     { .id = Input_LimitZ_Max,   .port = Z_LIMIT_PORT_MAX,  .pin = Z_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
-  #ifdef A_LIMIT_PIN
+#endif
+#ifdef A_LIMIT_PIN
     { .id = Input_LimitA,       .port = A_LIMIT_PORT,      .pin = A_LIMIT_PIN,       .group = PinGroup_Limit },
-  #endif
-  #ifdef A_LIMIT_PIN_MAX
+#endif
+#ifdef A_LIMIT_PIN_MAX
     { .id = Input_LimitA_Max,   .port = A_LIMIT_PORT_MAX,  .pin = A_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
-  #ifdef B_LIMIT_PIN
+#endif
+#ifdef B_LIMIT_PIN
     { .id = Input_LimitB,       .port = B_LIMIT_PORT,      .pin = B_LIMIT_PIN,       .group = PinGroup_Limit },
-  #endif
-  #ifdef B_LIMIT_PIN_MAX
+#endif
+#ifdef B_LIMIT_PIN_MAX
     { .id = Input_LimitB_Max,   .port = B_LIMIT_PORT_MAX,  .pin = B_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
-  #ifdef C_LIMIT_PIN
+#endif
+#ifdef C_LIMIT_PIN
     { .id = Input_LimitC,       .port = C_LIMIT_PORT,      .pin = C_LIMIT_PIN,       .group = PinGroup_Limit },
-  #endif
-  #ifdef C_LIMIT_PIN_MAX
+#endif
+#ifdef C_LIMIT_PIN_MAX
     { .id = Input_LimitC_Max,   .port = C_LIMIT_PORT_MAX,  .pin = C_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
-  #endif
-  #ifdef I2C_STROBE_PORT
+#endif
+#ifdef U_LIMIT_PIN
+    { .id = Input_LimitU,       .port = U_LIMIT_PORT,      .pin = U_LIMIT_PIN,       .group = PinGroup_Limit },
+#endif
+#ifdef U_LIMIT_PIN_MAX
+    { .id = Input_LimitU_Max,   .port = U_LIMIT_PORT_MAX,  .pin = U_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
+#endif
+#ifdef V_LIMIT_PIN
+    { .id = Input_LimitV,       .port = V_LIMIT_PORT,      .pin = V_LIMIT_PIN,       .group = PinGroup_Limit },
+#endif
+#ifdef V_LIMIT_PIN_MAX
+    { .id = Input_LimitV_Max,   .port = V_LIMIT_PORT_MAX,  .pin = V_LIMIT_PIN_MAX,   .group = PinGroup_LimitMax },
+#endif
+#ifdef W_LIMIT_PIN
+    { .id = Input_LimitW,       .port = W_LIMIT_PORT,      .pin = W_LIMIT_PIN,       .group = PinGroup_Limit },
+#endif
+#ifdef W_LIMIT_PIN_MAX
+    { .id = Input_LimitW_Max,   .port = W_LIMIT_PORT_MAX,  .pin = W_LIMIT_PIN_MAX,   .group = PinGroup_Limit },
+#endif
+#ifdef I2C_STROBE_PORT
     { .id = Input_KeypadStrobe, .port = I2C_STROBE_PORT,   .pin = I2C_STROBE_PIN,    .group = PinGroup_Keypad },
-  #endif
+#endif
     // Aux input pins must be consecutive in this array
 #ifdef AUXINPUT0_PIN
     { .id = Input_Aux0,         .port = AUXINPUT0_PORT,    .pin = AUXINPUT0_PIN,     .group = PinGroup_AuxInput },
@@ -185,6 +203,15 @@ static output_signal_t outputpin[] = {
 #ifdef C_AXIS
     { .id = Output_StepC,           .port = C_STEP_PORT,                .pin = C_STEP_PIN,              .group = PinGroup_StepperStep },
 #endif
+#ifdef U_AXIS
+    { .id = Output_StepU,           .port = U_STEP_PORT,                .pin = U_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef V_AXIS
+    { .id = Output_StepV,           .port = V_STEP_PORT,                .pin = V_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef W_AXIS
+    { .id = Output_StepW,           .port = W_STEP_PORT,                .pin = W_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
     { .id = Output_DirX,            .port = X_DIRECTION_PORT,           .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #ifdef X2_DIRECTION_PIN
     { .id = Output_DirX_2,          .port = X2_DIRECTION_PORT,          .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
@@ -205,6 +232,15 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef C_AXIS
     { .id = Output_DirC,            .port = C_DIRECTION_PORT,           .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef U_AXIS
+    { .id = Output_DirU,            .port = U_DIRECTION_PORT,           .pin = U_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef V_AXIS
+    { .id = Output_DirV,            .port = V_DIRECTION_PORT,           .pin = V_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef W_AXIS
+    { .id = Output_DirW,            .port = W_DIRECTION_PORT,           .pin = W_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #endif
 #if !TRINAMIC_ENABLE
 #ifdef STEPPERS_ENABLE_PORT
@@ -237,7 +273,16 @@ static output_signal_t outputpin[] = {
 #ifdef C_ENABLE_PORT
     { .id = Output_StepperEnableC,  .port = C_ENABLE_PORT,              .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
+#ifdef U_ENABLE_PORT
+    { .id = Output_StepperEnableU,  .port = U_ENABLE_PORT,              .pin = U_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
+#ifdef V_ENABLE_PORT
+    { .id = Output_StepperEnableU,  .port = V_ENABLE_PORT,              .pin = V_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef W_ENABLE_PORT
+    { .id = Output_StepperEnableW,  .port = W_ENABLE_PORT,              .pin = W_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#endif // TRINAMIC_ENABLE
 #ifdef SD_CS_PORT
     { .id = Output_SdCardCS,        .port = SD_CS_PORT,                 .pin = SD_CS_PIN,               .group = PinGroup_SdCard },
 #endif
@@ -406,6 +451,21 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out1.c;
                     break;
 #endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    BITBAND_PERI(U_STEP_PORT->PIO_ODSR, U_STEP_PIN) = step_out1.u;
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    BITBAND_PERI(V_STEP_PORT->PIO_ODSR, V_STEP_PIN) = step_out1.v;
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    BITBAND_PERI(W_STEP_PORT->PIO_ODSR, W_STEP_PIN) = step_out1.w;
+                    break;
+#endif
             }
             mask <<= 1;
         }
@@ -439,6 +499,15 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
   #endif
   #ifdef C_STEP_PIN
     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out1.c;
+  #endif
+  #ifdef U_STEP_PIN
+    BITBAND_PERI(U_STEP_PORT->PIO_ODSR, U_STEP_PIN) = step_out1.u;
+  #endif
+  #ifdef V_STEP_PIN
+    BITBAND_PERI(V_STEP_PORT->PIO_ODSR, V_STEP_PIN) = step_out1.v;
+  #endif
+  #ifdef W_STEP_PIN
+    BITBAND_PERI(W_STEP_PORT->PIO_ODSR, W_STEP_PIN) = step_out1.w;
   #endif
 #if STEP_INJECT_ENABLE
     }
@@ -507,6 +576,21 @@ inline static void __attribute__((always_inline)) set_step_outputs (axes_signals
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
                     break;
 #endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    BITBAND_PERI(U_STEP_PORT->PIO_ODSR, U_STEP_PIN) = step_out.u;
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    BITBAND_PERI(V_STEP_PORT->PIO_ODSR, V_STEP_PIN) = step_out.v;
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    BITBAND_PERI(W_STEP_PORT->PIO_ODSR, W_STEP_PIN) = step_out.w;
+                    break;
+#endif
             }
             mask <<= 1;
         }
@@ -539,6 +623,15 @@ inline static void __attribute__((always_inline)) set_step_outputs (axes_signals
   #endif
   #ifdef C_STEP_PIN
     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
+  #endif
+  #ifdef U_STEP_PIN
+    BITBAND_PERI(U_STEP_PORT->PIO_ODSR, U_STEP_PIN) = step_out.u;
+  #endif
+  #ifdef V_STEP_PIN
+    BITBAND_PERI(V_STEP_PORT->PIO_ODSR, V_STEP_PIN) = step_out.v;
+  #endif
+  #ifdef W_STEP_PIN
+    BITBAND_PERI(W_STEP_PORT->PIO_ODSR, W_STEP_PIN) = step_out.w;
   #endif
 #if STEP_INJECT_ENABLE
     }
@@ -632,6 +725,21 @@ inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_
                     BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
                     break;
 #endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    BITBAND_PERI(U_DIRECTION_PORT->PIO_ODSR, U_DIRECTION_PIN) = dir_out.u;
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    BITBAND_PERI(V_DIRECTION_PORT->PIO_ODSR, V_DIRECTION_PIN) = dir_out.v;
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    BITBAND_PERI(W_DIRECTION_PORT->PIO_ODSR, W_DIRECTION_PIN) = dir_out.w;
+                    break;
+#endif
             }
             mask <<= 1;
         }
@@ -667,7 +775,15 @@ inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_
   #ifdef C_DIRECTION_PIN
     BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
   #endif
-
+  #ifdef U_DIRECTION_PIN
+    BITBAND_PERI(U_DIRECTION_PORT->PIO_ODSR, U_DIRECTION_PIN) = dir_out.u;
+  #endif
+  #ifdef V_DIRECTION_PIN
+    BITBAND_PERI(V_DIRECTION_PORT->PIO_ODSR, V_DIRECTION_PIN) = dir_out.v;
+  #endif
+  #ifdef W_DIRECTION_PIN
+    BITBAND_PERI(W_DIRECTION_PORT->PIO_ODSR, W_DIRECTION_PIN) = dir_out.w;
+  #endif
 #if STEP_INJECT_ENABLE
     }
 #endif
@@ -704,6 +820,15 @@ static void stepperEnable (axes_signals_t enable, bool hold)
   #endif
   #ifdef C_ENABLE_PIN
     BITBAND_PERI(C_ENABLE_PORT->PIO_ODSR, C_ENABLE_PIN) = enable.c;
+  #endif
+  #ifdef U_ENABLE_PIN
+    BITBAND_PERI(U_ENABLE_PORT->PIO_ODSR, U_ENABLE_PIN) = enable.u;
+  #endif
+  #ifdef V_ENABLE_PIN
+    BITBAND_PERI(V_ENABLE_PORT->PIO_ODSR, V_ENABLE_PIN) = enable.v;
+  #endif
+  #ifdef W_ENABLE_PIN
+    BITBAND_PERI(W_ENABLE_PORT->PIO_ODSR, W_ENABLE_PIN) = enable.w;
   #endif
 #endif
 }
@@ -836,7 +961,21 @@ static inline __attribute__((always_inline)) void inject_step (axes_signals_t st
                     BITBAND_PERI(C_STEP_PORT->PIO_ODSR, C_STEP_PIN) = step_out.c;
                     break;
 #endif
-            }
+#ifdef U_AXIS
+                case U_AXIS:
+                    BITBAND_PERI(U_STEP_PORT->PIO_ODSR, U_STEP_PIN) = step_out.u;
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    BITBAND_PERI(V_STEP_PORT->PIO_ODSR, V_STEP_PIN) = step_out.v;
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    BITBAND_PERI(W_STEP_PORT->PIO_ODSR, W_STEP_PIN) = step_out.w;
+                    break;
+#endif            }
         }
         idx--;
         mask >>= 1;
@@ -905,6 +1044,21 @@ void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
                         BITBAND_PERI(C_DIRECTION_PORT->PIO_ODSR, C_DIRECTION_PIN) = dir_out.c;
                         break;
 #endif
+#ifdef U_AXIS
+                    case U_AXIS:
+                        BITBAND_PERI(U_DIRECTION_PORT->PIO_ODSR, U_DIRECTION_PIN) = dir_out.u;
+                        break;
+#endif
+#ifdef V_AXIS
+                    case V_AXIS:
+                        BITBAND_PERI(V_DIRECTION_PORT->PIO_ODSR, V_DIRECTION_PIN) = dir_out.v;
+                        break;
+#endif
+#ifdef W_AXIS
+                    case W_AXIS:
+                        BITBAND_PERI(W_DIRECTION_PORT->PIO_ODSR, W_DIRECTION_PIN) = dir_out.w;
+                        break;
+#endif
                 }
             }
             idx--;
@@ -950,6 +1104,15 @@ inline static limit_signals_t limitsGetState (void)
 #ifdef C_LIMIT_PIN
     signals.min.c = BITBAND_PERI(C_LIMIT_PORT->PIO_PDSR, C_LIMIT_PIN);
 #endif
+#ifdef U_LIMIT_PIN
+    signals.min.u = BITBAND_PERI(U_LIMIT_PORT->PIO_PDSR, U_LIMIT_PIN);
+#endif
+#ifdef V_LIMIT_PIN
+    signals.min.v = BITBAND_PERI(V_LIMIT_PORT->PIO_PDSR, V_LIMIT_PIN);
+#endif
+#ifdef W_LIMIT_PIN
+    signals.min.w = BITBAND_PERI(W_LIMIT_PORT->PIO_PDSR, W_LIMIT_PIN);
+#endif
 
 #ifdef X2_LIMIT_PIN
     signals.min2.x = BITBAND_PERI(X2_LIMIT_PORT->PIO_PDSR, X2_LIMIT_PIN);
@@ -978,6 +1141,15 @@ inline static limit_signals_t limitsGetState (void)
 #endif
 #ifdef C_LIMIT_PIN_MAX
     signals.max.c = BITBAND_PERI(C_LIMIT_PORT_MAX->PIO_PDSR, C_LIMIT_PIN_MAX);
+#endif
+#ifdef U_LIMIT_PIN_MAX
+    signals.max.u = BITBAND_PERI(U_LIMIT_PORT_MAX->PIO_PDSR, U_LIMIT_PIN_MAX);
+#endif
+#ifdef V_LIMIT_PIN_MAX
+    signals.max.v = BITBAND_PERI(V_LIMIT_PORT_MAX->PIO_PDSR, V_LIMIT_PIN_MAX);
+#endif
+#ifdef W_LIMIT_PIN_MAX
+    signals.max.w = BITBAND_PERI(W_LIMIT_PORT_MAX->PIO_PDSR, W_LIMIT_PIN_MAX);
 #endif
 
     if (settings.limits.invert.mask) {
@@ -1634,25 +1806,48 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
                         input->mode.pull_mode = settings->limits.disable_pullup.z ? PullMode_Down : PullMode_Up;
                         input->mode.irq_mode = limit_fei.z ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
-
+#ifdef A_AXIS
                     case Input_LimitA:
                     case Input_LimitA_Max:
                         input->mode.pull_mode = settings->limits.disable_pullup.a ? PullMode_Down : PullMode_Up;
                         input->mode.irq_mode = limit_fei.a ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
-
+#endif
+#ifdef B_AXIS
                     case Input_LimitB:
                     case Input_LimitB_Max:
                         input->mode.pull_mode = settings->limits.disable_pullup.b ? PullMode_Down : PullMode_Up;
                         input->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
-
+#endif
+#ifdef C_AXIS
                     case Input_LimitC:
                     case Input_LimitC_Max:
                         input->mode.pull_mode = settings->limits.disable_pullup.c ? PullMode_Down : PullMode_Up;
                         input->mode.irq_mode = limit_fei.c ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                         break;
-
+#endif
+#ifdef U_AXIS
+                    case Input_LimitU:
+                    case Input_LimitU_Max:
+                        input->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
+                        input->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                        break;
+#endif
+#ifdef V_AXIS
+                    case Input_LimitV:
+                    case Input_LimitV_Max:
+                        input->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
+                        input->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                        break;
+#endif
+#ifdef W_AXIS
+                    case Input_LimitW:
+                    case Input_LimitW_Max:
+                        input->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
+                        input->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                        break;
+#endif
                     default:
                         break;
                 }
@@ -2028,7 +2223,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "251030";
+    hal.driver_version = "260122";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2095,7 +2290,8 @@ bool driver_init (void)
 #endif
 
 #if EEPROM_ENABLE
-    i2c_eeprom_init();
+    if(!i2c_eeprom_init())
+        task_run_on_startup(task_raise_alarm, (void *)Alarm_NVS_Failed);
 #else
     if(nvsInit()) {
         hal.nvs.type = NVS_Flash;
