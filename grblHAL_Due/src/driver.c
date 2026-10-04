@@ -370,7 +370,7 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
         if(!(delay_ms.callback = callback)) {
             while(delay_ms.ms)
-                grbl.on_execute_delay(state_get());
+                task_execute(true);
         }
     } else if(callback)
         callback();
@@ -2223,7 +2223,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "260122";
+    hal.driver_version = "261003";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
