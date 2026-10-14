@@ -1620,7 +1620,7 @@ static void enable_irq (void)
 {
     if(!__get_PRIMASK() || lock) {
         lock++;
-        __disable_irq();
+        __enable_irq();
     }
 }
 
@@ -2248,7 +2248,7 @@ bool driver_init (void)
 #endif
 
     hal.info = "SAM3X8E";
-    hal.driver_version = "261007";
+    hal.driver_version = "261014";
     hal.driver_url = GRBL_URL "/SAM3X8E";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
